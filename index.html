@@ -235,12 +235,12 @@
 
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
                 <nav>
-                    <button class="nav-btn active" onclick="showSection('dashboard')">Dashboard</button>
-                    <button class="nav-btn" onclick="showSection('profile')">Profile</button>
-                    <button class="nav-btn" onclick="showSection('healthassistant')">Health Assistant</button>
-                    <button class="nav-btn" onclick="showSection('mealplan')">AI Meal Planner</button>
-                    <button class="nav-btn" onclick="showSection('foodlog')">Food Log</button>
-                    <button class="nav-btn" onclick="showSection('shopping')">Shopping</button>
+                    <button class="nav-btn active" data-section="dashboard" onclick="showSection('dashboard')">Dashboard</button>
+                    <button class="nav-btn" data-section="profile" onclick="showSection('profile')">Profile</button>
+                    <button class="nav-btn" data-section="healthassistant" onclick="showSection('healthassistant')">Health Assistant</button>
+                    <button class="nav-btn" data-section="mealplan" onclick="showSection('mealplan')">AI Meal Planner</button>
+                    <button class="nav-btn" data-section="foodlog" onclick="showSection('foodlog')">Food Log</button>
+                    <button class="nav-btn" data-section="shopping" onclick="showSection('shopping')">Shopping</button>
                 </nav>
 
                 <div id="user-section">
@@ -280,17 +280,17 @@
                     <div class="macro-card">
                         <div class="tiny">Carbs</div>
                         <div class="macro-value"><span id="carbs-actual">0</span>g</div>
-                        <div class="tiny muted">Goal: <span id="carbs-goal">250g</span></div>
+                        <div class="tiny muted">Goal: <span id="carbs-goal">250</span>g</div>
                     </div>
                     <div class="macro-card">
                         <div class="tiny">Protein</div>
                         <div class="macro-value"><span id="protein-actual">0</span>g</div>
-                        <div class="tiny muted">Goal: <span id="protein-goal">150g</span></div>
+                        <div class="tiny muted">Goal: <span id="protein-goal">150</span>g</div>
                     </div>
                     <div class="macro-card">
                         <div class="tiny">Fat</div>
                         <div class="macro-value"><span id="fat-actual">0</span>g</div>
-                        <div class="tiny muted">Goal: <span id="fat-goal">67g</span></div>
+                        <div class="tiny muted">Goal: <span id="fat-goal">67</span>g</div>
                     </div>
                 </div>
 
@@ -535,7 +535,7 @@
     const OPENFOODFACTS_SEARCH_URL  = "https://world.openfoodfacts.org/cgi/search.pl";
     const OPENFOODFACTS_PRODUCT_URL = "https://world.openfoodfacts.org/api/v0/product/"; // + barcode + .json
 
-    /* ========== Firebase config (same as before) ========== */
+    /* ========== Firebase config ========== */
     const firebaseConfig = {
         apiKey: "AIzaSyCVwscL-mtp9RBY1tUWxZKRCsVzYmcqUOk",
         authDomain: "food-tracker-ca7bf.firebaseapp.com",
@@ -565,8 +565,12 @@
         age: null,
         activityLevel: 1.55,
         dailyCalories: 2000,
+
+        // NEW: store both percents and grams
+        macroPercents: { carbsPct: 40, proteinPct: 30, fatPct: 30 },
         macros: { carbs: 250, protein: 150, fat: 67 }
     };
+
     let foodLog = [];
     let generatedMeals = [];
     let assignedMeals = [];
@@ -587,9 +591,7 @@
 
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.nav-btn').forEach(b => {
-            if (b.textContent.trim().toLowerCase().includes(sectionId.replace(/([A-Z])/g,' $1').trim())) {
-                b.classList.add('active');
-            }
+            if (b.dataset.section === sectionId) b.classList.add('active');
         });
 
         if (sectionId === 'dashboard') updateDashboard();
@@ -599,6 +601,38 @@
 
     function escapeHtml(text=""){
         return String(text || "").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[m]);
+    }
+
+    function safeParseJson(content) {
+        if (!content) return null;
+
+        let text = String(content).trim();
+
+        // strip code fences
+        text = text.replace(/^```json\s*/i, "").replace(/^```\s*/i, "");
+        text = text.replace(/```$/i, "").trim();
+
+        try { return JSON.parse(text); } catch (e) {}
+
+        const start = text.indexOf("{");
+        const end = text.lastIndexOf("}");
+        if (start !== -1 && end !== -1) {
+            const candidate = text.substring(start, end + 1);
+            try { return JSON.parse(candidate); } catch (e) {}
+        }
+        return null;
+    }
+
+    function computeMacroGramsFromPercents(calories, percents) {
+        const carbsPct = Number(percents?.carbsPct ?? 40);
+        const proteinPct = Number(percents?.proteinPct ?? 30);
+        const fatPct = Number(percents?.fatPct ?? 30);
+
+        return {
+            carbs: Math.round((calories * (carbsPct / 100)) / 4),
+            protein: Math.round((calories * (proteinPct / 100)) / 4),
+            fat: Math.round((calories * (fatPct / 100)) / 9),
+        };
     }
 
     /* ========== Date Controls ========== */
@@ -636,6 +670,19 @@
         try {
             const p = JSON.parse(localStorage.getItem('ft_userProfile'));
             if(p) userProfile = Object.assign(userProfile, p);
+
+            // Backward compatibility: if old profile stored percents as macros, fix it.
+            if (userProfile && userProfile.macros && userProfile.macroPercents == null) {
+                // If macros look like percents (<= 100), treat them as percents:
+                const c = Number(userProfile.macros.carbs);
+                const pr = Number(userProfile.macros.protein);
+                const f = Number(userProfile.macros.fat);
+                if (c <= 100 && pr <= 100 && f <= 100) {
+                    userProfile.macroPercents = { carbsPct: c || 40, proteinPct: pr || 30, fatPct: f || 30 };
+                    userProfile.macros = computeMacroGramsFromPercents(userProfile.dailyCalories || 2000, userProfile.macroPercents);
+                }
+            }
+
             const fl = JSON.parse(localStorage.getItem('ft_foodLog'));
             if(fl && Array.isArray(fl)) foodLog = fl;
             const gm = JSON.parse(localStorage.getItem('ft_generatedMeals'));
@@ -678,6 +725,11 @@
             if(data.generatedMeals) generatedMeals = data.generatedMeals;
             if(data.assignedMeals) assignedMeals = data.assignedMeals;
             if(data.shoppingList) shoppingList = data.shoppingList;
+
+            // ensure computed macros exist
+            if (!userProfile.macroPercents) userProfile.macroPercents = { carbsPct: 40, proteinPct: 30, fatPct: 30 };
+            if (!userProfile.macros) userProfile.macros = computeMacroGramsFromPercents(userProfile.dailyCalories || 2000, userProfile.macroPercents);
+
             saveToLocalStorage();
             updateAllDisplays();
         } catch(e){
@@ -709,9 +761,9 @@
         document.getElementById('protein-actual').textContent = Math.round(totals.protein);
         document.getElementById('fat-actual').textContent = Math.round(totals.fat);
 
-        document.getElementById('carbs-goal').textContent = (userProfile.macros?.carbs ?? 250) + "g";
-        document.getElementById('protein-goal').textContent = (userProfile.macros?.protein ?? 150) + "g";
-        document.getElementById('fat-goal').textContent = (userProfile.macros?.fat ?? 67) + "g";
+        document.getElementById('carbs-goal').textContent = (userProfile.macros?.carbs ?? 250);
+        document.getElementById('protein-goal').textContent = (userProfile.macros?.protein ?? 150);
+        document.getElementById('fat-goal').textContent = (userProfile.macros?.fat ?? 67);
 
         const mealsEl = document.getElementById('today-meals');
         const foodListEl = document.getElementById('today-food-list');
@@ -750,12 +802,26 @@
         sec.style.display = 'block';
         list.innerHTML = generatedMeals.map(m => `
             <div style="border:1px solid rgba(16,24,40,0.06);padding:12px;border-radius:8px;margin-bottom:10px;background:#fff">
-                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-                    <div style="flex:1;min-width:180px">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
+                    <div style="flex:1;min-width:220px">
                         <div style="font-weight:700">${escapeHtml(m.name)}</div>
                         <div class="tiny muted">${escapeHtml(m.description || '')}</div>
+                        <div class="tiny muted">Servings: ${Number(m.servings || 1)}</div>
                         <div class="tiny muted">Est: ${Math.round(m.calories||0)} kcal · ${Math.round(m.carbs||0)}g carbs · ${Math.round(m.protein||0)}g protein · ${Math.round(m.fat||0)}g fat</div>
+
+                        ${(m.ingredients && m.ingredients.length) ? `
+                        <div class="tiny muted" style="margin-top:8px">
+                            <strong>Ingredients:</strong> ${escapeHtml(m.ingredients.slice(0,8).join(", "))}
+                            ${m.ingredients.length > 8 ? "…" : ""}
+                        </div>` : ""}
+
+                        ${(m.steps && m.steps.length) ? `
+                        <div class="tiny muted" style="margin-top:6px">
+                            <strong>Steps:</strong> ${escapeHtml(m.steps.slice(0,2).join(" • "))}
+                            ${m.steps.length > 2 ? "…" : ""}
+                        </div>` : ""}
                     </div>
+
                     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                         <input type="date" value="${currentViewDate}" onchange="assignMealToDate('${m.id}', this.value)" style="padding:6px;border-radius:8px;border:1px solid rgba(16,24,40,0.06)">
                         <button class="btn tiny" onclick="assignMealToDate('${m.id}', this.previousElementSibling.value)">Assign</button>
@@ -797,12 +863,16 @@
         userProfile.name = document.getElementById('user-name').value || userProfile.name;
         userProfile.age = Number(document.getElementById('user-age').value) || userProfile.age;
         userProfile.activityLevel = Number(document.getElementById('activity-level').value) || userProfile.activityLevel;
+
         userProfile.dailyCalories = Number(document.getElementById('daily-calories').value) || userProfile.dailyCalories;
-        userProfile.macros = {
-            carbs: Number(document.getElementById('carbs-percent').value) || 40,
-            protein: Number(document.getElementById('protein-percent').value) || 30,
-            fat: Number(document.getElementById('fat-percent').value) || 30
-        };
+
+        const carbsPct = Number(document.getElementById('carbs-percent').value) || 40;
+        const proteinPct = Number(document.getElementById('protein-percent').value) || 30;
+        const fatPct = Number(document.getElementById('fat-percent').value) || 30;
+
+        userProfile.macroPercents = { carbsPct, proteinPct, fatPct };
+        userProfile.macros = computeMacroGramsFromPercents(userProfile.dailyCalories || 2000, userProfile.macroPercents);
+
         saveToLocalStorage();
         saveToCloud();
         alert('Profile saved.');
@@ -821,6 +891,11 @@
         userProfile.tdee = tdee;
         userProfile.dailyCalories = tdee;
         document.getElementById('daily-calories').value = tdee;
+
+        // Recompute macro grams using saved percents
+        if (!userProfile.macroPercents) userProfile.macroPercents = { carbsPct: 40, proteinPct: 30, fatPct: 30 };
+        userProfile.macros = computeMacroGramsFromPercents(tdee, userProfile.macroPercents);
+
         saveToLocalStorage();
         saveToCloud();
         alert(`Estimated calories/day: ${tdee}`);
@@ -832,13 +907,14 @@
         const carbsPct = Number(document.getElementById('carbs-percent').value) || 40;
         const proteinPct = Number(document.getElementById('protein-percent').value) || 30;
         const fatPct = Number(document.getElementById('fat-percent').value) || 30;
-        const carbsGrams = Math.round((calories * (carbsPct/100)) / 4);
-        const proteinGrams = Math.round((calories * (proteinPct/100)) / 4);
-        const fatGrams = Math.round((calories * (fatPct/100)) / 9);
-        userProfile.macros = {carbs:carbsGrams, protein:proteinGrams, fat:fatGrams};
+
+        userProfile.dailyCalories = calories;
+        userProfile.macroPercents = { carbsPct, proteinPct, fatPct };
+        userProfile.macros = computeMacroGramsFromPercents(calories, userProfile.macroPercents);
+
         saveToLocalStorage();
         saveToCloud();
-        alert(`Suggested macros:\nCarbs: ${carbsGrams} g\nProtein: ${proteinGrams} g\nFat: ${fatGrams} g`);
+        alert(`Suggested macros:\nCarbs: ${userProfile.macros.carbs} g\nProtein: ${userProfile.macros.protein} g\nFat: ${userProfile.macros.fat} g`);
         updateDashboard();
     }
 
@@ -943,7 +1019,7 @@
 
         if(usedAny) return;
 
-        // fallback Nutritionix via backend
+        // fallback Nutritionix via backend (you can disable if you're "waiting on API")
         resultsEl.innerHTML = '<div class="tiny muted">No OpenFoodFacts results. Searching Nutritionix…</div>';
         try{
             const foods = await searchNutritionix(query);
@@ -1069,7 +1145,7 @@
         }
     }
 
-    // Nutritionix via backend
+    // Nutritionix via backend (kept as-is; you can disable these if you're "waiting")
     async function searchNutritionix(query){
         const res = await fetch(`${BACKEND_URL}/api/nutritionix/search`, {
             method: "POST",
@@ -1112,6 +1188,10 @@
         const modal = document.getElementById('scanner-modal');
         modal.classList.add('show');
         barcodeScannerActive = true;
+
+        // Important: remove previous listeners if user opens scanner multiple times
+        try { Quagga.offDetected(); } catch(e) {}
+
         Quagga.init({
             inputStream: {
                 name: "Live",
@@ -1147,7 +1227,7 @@
     }
 
     /* ========== OpenAI via backend ========== */
-    async function callOpenAI(messages = [], maxTokens = 800, temperature = 0.7){
+    async function callOpenAI(messages = [], maxTokens = 900, temperature = 0.4){
         const res = await fetch(`${BACKEND_URL}/api/ai`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -1171,46 +1251,54 @@
         sendBtn.disabled = true;
         sendBtn.textContent = 'Generating…';
 
-        const system = `You are a nutrition-focused assistant. When asked to generate meals, return a JSON object with key "meals", value = array of meal objects.
-Each meal object must include:
-- id: short unique id
-- name: string
-- description: short string
-- calories: estimated calories (number)
-- carbs: grams (number)
-- protein: grams (number)
-- fat: grams (number)
-Return ONLY valid JSON. Example:
-{"meals":[{"id":"m1","name":"Grilled Chicken Salad","description":"...","calories":350,"carbs":15,"protein":32,"fat":18}]}
-Respect user's dietary constraints, calories, and preferences.`;
+        const system = `
+You are a meal planning engine. Output MUST be valid JSON only (no markdown, no backticks, no extra text).
 
-        const userMsg = `User request: "${prompt}"\n\nUser profile: ${JSON.stringify({
+Return this exact shape:
+{
+  "meals": [
+    {
+      "id": "m1",
+      "name": "string",
+      "description": "string (1 sentence)",
+      "servings": 1,
+      "ingredients": ["string", "string"],
+      "steps": ["string", "string"],
+      "calories": 0,
+      "carbs": 0,
+      "protein": 0,
+      "fat": 0
+    }
+  ]
+}
+
+Rules:
+- calories, carbs, protein, fat must be NUMBERS (not strings).
+- Provide realistic estimates.
+- Respect user constraints and targets.
+- If user asks for N meals, return exactly N meals.
+        `.trim();
+
+        const userMsg = `User request: "${prompt}"
+
+User profile:
+${JSON.stringify({
             dailyCalories: userProfile.dailyCalories,
-            macros: userProfile.macros,
-        })}`;
+            macroTargetsGrams: userProfile.macros,
+            macroPercents: userProfile.macroPercents
+        }, null, 2)}`;
 
         try {
             const content = await callOpenAI([
                 {role:'system', content: system},
                 {role:'user', content: userMsg}
-            ], 800, 0.7);
+            ], 900, 0.4);
 
-            let json = null;
-            try {
-                json = JSON.parse(content);
-            } catch (e) {
-                const start = content.indexOf('{');
-                const end = content.lastIndexOf('}');
-                if(start !== -1 && end !== -1){
-                    try { json = JSON.parse(content.substring(start, end+1)); } catch(e2){}
-                }
-            }
+            const json = safeParseJson(content);
 
             if(!json || !Array.isArray(json.meals)) {
                 alert('AI returned unexpected format. Check console for raw response.');
                 console.log('OpenAI raw meal response:', content);
-                sendBtn.disabled = false;
-                sendBtn.textContent = 'Generate';
                 return;
             }
 
@@ -1218,6 +1306,9 @@ Respect user's dietary constraints, calories, and preferences.`;
                 id: m.id || uid('meal'),
                 name: m.name || 'Meal',
                 description: m.description || '',
+                servings: Number(m.servings) || 1,
+                ingredients: Array.isArray(m.ingredients) ? m.ingredients : [],
+                steps: Array.isArray(m.steps) ? m.steps : [],
                 calories: Number(m.calories) || 0,
                 carbs: Number(m.carbs) || 0,
                 protein: Number(m.protein) || 0,
@@ -1248,7 +1339,7 @@ Respect user's dietary constraints, calories, and preferences.`;
             const reply = await callOpenAI([
                 {role:'system', content: system},
                 {role:'user', content: text}
-            ], 700, 0.7);
+            ], 700, 0.6);
             appendHealthMessage(reply, 'assistant');
         } catch(e){
             appendHealthMessage('Sorry — I could not fetch a response. Check that your backend is running and API keys are set.', 'assistant');
@@ -1346,7 +1437,19 @@ Respect user's dietary constraints, calories, and preferences.`;
 
     /* ========== Init ========== */
     window.onload = function(){
+        loadFromLocalStorage();
         initializeDatePicker();
+
+        // Set form fields from saved profile (nice UX)
+        document.getElementById('user-name').value = userProfile.name || "";
+        document.getElementById('user-age').value = userProfile.age || "";
+        document.getElementById('activity-level').value = userProfile.activityLevel || 1.55;
+        document.getElementById('daily-calories').value = userProfile.dailyCalories || 2000;
+
+        document.getElementById('carbs-percent').value = userProfile.macroPercents?.carbsPct ?? 40;
+        document.getElementById('protein-percent').value = userProfile.macroPercents?.proteinPct ?? 30;
+        document.getElementById('fat-percent').value = userProfile.macroPercents?.fatPct ?? 30;
+
         updateAllDisplays();
     };
 
