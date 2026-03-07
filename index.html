@@ -3,1757 +3,199 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-  <title>Food Tracker - AI Nutrition Coach</title>
+  <title>Food Tracker - Pre-Test Build</title>
 
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
   <style>
-    :root{
-      --bg:#f6f7f9;
-      --card:#ffffff;
-      --muted:#6b7280;
-      --accent:#2e7d32;
-      --accent-2:#66bb6a;
-      --danger:#d32f2f;
-      --radius:12px;
-      --shadow:0 6px 18px rgba(16,24,40,0.08);
-      --border:1px solid rgba(16,24,40,0.08);
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
-      background:var(--bg);
-      margin:0;
-      color:#111827;
-      padding:18px;
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
-    }
-    .container{max-width:1180px;margin:0 auto}
-    header{
-      display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
-      margin-bottom:18px;
-    }
-    .brand{display:flex;align-items:center;gap:12px}
-    .logo{
-      width:56px;height:56px;border-radius:14px;
-      background:linear-gradient(135deg,var(--accent),var(--accent-2));
-      color:#fff;display:flex;align-items:center;justify-content:center;
-      font-weight:800;box-shadow:var(--shadow);font-size:20px;
-    }
-    h1{margin:0;font-size:20px}
-    .subtitle{font-size:13px;color:var(--muted);margin-top:3px}
-
-    nav{display:flex;gap:8px;flex-wrap:wrap}
-    .nav-btn{
-      background:transparent;border:1px solid rgba(16,24,40,0.06);
-      padding:8px 12px;border-radius:999px;font-weight:700;color:var(--muted);
-      cursor:pointer;white-space:nowrap;
-    }
-    .nav-btn.active{
-      background:var(--card);
-      color:var(--accent);
-      border-color:rgba(46,125,50,0.18);
-      box-shadow:0 6px 18px rgba(46,125,50,0.08);
-    }
-
-    main{display:grid;grid-template-columns:1fr;gap:14px}
-    .content{
-      background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);
-    }
-    .card{
-      background:#fff;border-radius:10px;padding:12px;border:var(--border);
-    }
-    .section-title{margin:0 0 12px 0;font-size:18px;color:#0f172a}
-    .tiny{font-size:12px;color:var(--muted)}
-    .muted{color:var(--muted)}
-    .input-group{margin-bottom:10px}
-    .input-group label{
-      display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:6px;
-    }
-    input[type="text"],input[type="number"],input[type="date"],input[type="email"],
-    input[type="password"],select,textarea{
-      width:100%;
-      padding:10px 12px;
-      border:1px solid rgba(16,24,40,0.10);
-      background:#fff;
-      border-radius:8px;
-      font-size:14px;
-    }
-    textarea{min-height:90px;resize:vertical}
-    .row{display:flex;gap:8px;flex-wrap:wrap}
-    .row > *{min-width:140px}
-
-    .btn{
-      background:var(--accent);
-      color:#fff !important;
-      padding:10px 14px;border-radius:10px;border:none;
-      font-weight:800;cursor:pointer;
-    }
-    .btn.secondary{
-      background:transparent;
-      color:var(--accent) !important;
-      border:1px solid rgba(46,125,50,0.18);
-    }
-    .btn.danger{background:var(--danger);color:#fff !important}
-    .btn.tiny{padding:8px 10px;font-size:12px}
-    .btn:disabled{opacity:.65;cursor:default;color:#fff !important}
-
-    .progress-bar{height:14px;background:#f1f5f9;border-radius:999px;overflow:hidden}
-    .progress-fill{
-      height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));
-      width:0%;display:flex;align-items:center;justify-content:center;
-      color:#fff;font-size:12px;font-weight:800;
-    }
-    .macro-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-    .macro-card{background:#fff;padding:12px;border-radius:8px;text-align:center;border:var(--border)}
-    .macro-value{font-weight:900;font-size:18px;color:#111827}
-
-    .pill{
-      display:inline-flex;align-items:center;gap:6px;
-      padding:6px 10px;border-radius:999px;background:#eefaf0;color:var(--accent);
-      font-weight:800;
-    }
-    .pill.blue{background:#eef2ff;color:#3730a3}
-    .pill.red{background:#fef2f2;color:#b91c1c}
-
-    .chat-container{
-      padding:10px;border-radius:10px;background:#f8fafc;
-      max-height:420px;overflow:auto;border:var(--border);
-    }
-    .chat-message{
-      padding:10px;border-radius:12px;max-width:88%;margin-bottom:10px;line-height:1.45;
-    }
-    .chat-message.assistant{background:#fff;border:var(--border)}
-    .chat-message.user{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;margin-left:auto}
-    .chat-input-row{display:flex;gap:8px;margin-top:10px}
-    .chat-input{flex:1;padding:10px;border-radius:8px;border:1px solid rgba(16,24,40,0.08)}
-
-    .meal-day{
-      border:var(--border);
-      padding:12px;border-radius:10px;background:#fff;margin-bottom:12px;
-    }
-    .meal-slot{
-      border:1px solid rgba(16,24,40,0.06);
-      padding:10px;border-radius:10px;background:#fff;margin-top:8px;
-      display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap;
-    }
-    .meal-slot-title{font-weight:900}
-    .meal-slot-meta{font-size:12px;color:var(--muted)}
-
-    .coach-action-box{
-      border:1px solid rgba(46,125,50,0.18);
-      background:#f7fff8;
-      border-radius:12px;padding:12px;margin-top:10px;
-    }
-    .insight-item{
-      padding:10px;border-radius:10px;border:var(--border);background:#fff;margin-bottom:8px;
-    }
-
-    .modal{
-      display:none;position:fixed;inset:0;background:rgba(2,6,23,0.5);
-      z-index:70;align-items:center;justify-content:center;padding:16px;
-    }
-    .modal.show{display:flex}
-    .modal-content{
-      background:var(--card);padding:18px;border-radius:12px;width:100%;max-width:640px;
-      box-shadow:var(--shadow);max-height:90dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;
-    }
-
-    @media (max-width:900px){
-      .macro-grid{grid-template-columns:repeat(2,1fr)}
-    }
-    @media (max-width:600px){
-      header{flex-direction:column;align-items:flex-start;gap:8px}
-      nav{width:100%;justify-content:flex-start;overflow:auto}
-      main{padding-bottom:60px}
-      .macro-grid{grid-template-columns:1fr}
-      .chat-container{max-height:320px}
-      .nav-btn{font-size:13px;padding:7px 10px}
-      button,.btn{min-height:40px}
-    }
+    :root{--bg:#f6f7f9;--card:#fff;--muted:#6b7280;--accent:#2e7d32;--accent-2:#66bb6a;--danger:#d32f2f;--radius:12px;--shadow:0 6px 18px rgba(16,24,40,.08);--border:1px solid rgba(16,24,40,.08)}
+    *{box-sizing:border-box} html,body{height:100%}
+    body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);margin:0;color:#111827;padding:18px}
+    .container{max-width:1200px;margin:0 auto} header{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+    .brand{display:flex;align-items:center;gap:12px}.logo{width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;box-shadow:var(--shadow);font-size:20px}
+    h1{margin:0;font-size:20px}.subtitle{font-size:13px;color:var(--muted);margin-top:3px} nav{display:flex;gap:8px;flex-wrap:wrap}
+    .nav-btn{background:transparent;border:1px solid rgba(16,24,40,.06);padding:8px 12px;border-radius:999px;font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap}
+    .nav-btn.active{background:var(--card);color:var(--accent);border-color:rgba(46,125,50,.18);box-shadow:0 6px 18px rgba(46,125,50,.08)}
+    main{display:grid;grid-template-columns:1fr;gap:14px}.content{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+    .card{background:#fff;border-radius:10px;padding:12px;border:var(--border)}.section-title{margin:0 0 12px 0;font-size:18px;color:#0f172a}
+    .tiny{font-size:12px;color:var(--muted)}.muted{color:var(--muted)}.input-group{margin-bottom:10px}.input-group label{display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:6px}
+    input[type="text"],input[type="number"],input[type="date"],input[type="email"],input[type="password"],select,textarea{width:100%;padding:10px 12px;border:1px solid rgba(16,24,40,.10);background:#fff;border-radius:8px;font-size:14px}
+    textarea{min-height:90px;resize:vertical}.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{min-width:140px}
+    .btn{background:var(--accent);color:#fff!important;padding:10px 14px;border-radius:10px;border:none;font-weight:800;cursor:pointer}.btn.secondary{background:transparent;color:var(--accent)!important;border:1px solid rgba(46,125,50,.18)}.btn.danger{background:var(--danger);color:#fff!important}.btn.tiny{padding:8px 10px;font-size:12px}.btn:disabled{opacity:.65;cursor:default}
+    .progress-bar{height:14px;background:#f1f5f9;border-radius:999px;overflow:hidden}.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));width:0%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:800}
+    .macro-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.macro-card{background:#fff;padding:12px;border-radius:8px;text-align:center;border:var(--border)}.macro-value{font-weight:900;font-size:18px;color:#111827}
+    .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:#eefaf0;color:var(--accent);font-weight:800}.pill.blue{background:#eef2ff;color:#3730a3}.pill.red{background:#fef2f2;color:#b91c1c}.pill.orange{background:#fff7ed;color:#c2410c}
+    .chat-container{padding:10px;border-radius:10px;background:#f8fafc;max-height:420px;overflow:auto;border:var(--border)}.chat-message{padding:10px;border-radius:12px;max-width:88%;margin-bottom:10px;line-height:1.45}.chat-message.assistant{background:#fff;border:var(--border)}.chat-message.user{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;margin-left:auto}.chat-input-row{display:flex;gap:8px;margin-top:10px}.chat-input{flex:1;padding:10px;border-radius:8px;border:1px solid rgba(16,24,40,.08)}
+    .meal-day{border:var(--border);padding:12px;border-radius:10px;background:#fff;margin-bottom:12px}.meal-slot{border:1px solid rgba(16,24,40,.06);padding:10px;border-radius:10px;background:#fff;margin-top:8px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}.meal-slot-title{font-weight:900}.meal-slot-meta{font-size:12px;color:var(--muted)}
+    .coach-action-box{border:1px solid rgba(46,125,50,.18);background:#f7fff8;border-radius:12px;padding:12px;margin-top:10px}.insight-item{padding:10px;border-radius:10px;border:var(--border);background:#fff;margin-bottom:8px}
+    .modal{display:none;position:fixed;inset:0;background:rgba(2,6,23,.5);z-index:70;align-items:center;justify-content:center;padding:16px}.modal.show{display:flex}.modal-content{background:var(--card);padding:18px;border-radius:12px;width:100%;max-width:680px;box-shadow:var(--shadow);max-height:90dvh;overflow-y:auto}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media (max-width:900px){.macro-grid,.two-col{grid-template-columns:1fr 1fr}}
+    @media (max-width:600px){header{flex-direction:column;align-items:flex-start;gap:8px}nav{width:100%;justify-content:flex-start;overflow:auto}.macro-grid,.two-col{grid-template-columns:1fr}.chat-container{max-height:320px}.nav-btn{font-size:13px;padding:7px 10px}button,.btn{min-height:40px}}
   </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <div class="brand">
-        <div class="logo">FT</div>
-        <div>
-          <h1>Food Tracker</h1>
-          <div class="subtitle">AI Nutrition Coach • Split planner fix • Food logging</div>
-        </div>
-      </div>
-
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <nav>
-          <button class="nav-btn active" onclick="showSection('dashboard')">Dashboard</button>
-          <button class="nav-btn" onclick="showSection('profile')">Profile</button>
-          <button class="nav-btn" onclick="showSection('coach')">AI Nutrition Coach</button>
-          <button class="nav-btn" onclick="showSection('planner')">Plan Generator</button>
-          <button class="nav-btn" onclick="showSection('foodlog')">Food Log</button>
-          <button class="nav-btn" onclick="showSection('shopping')">Shopping</button>
-          <button class="nav-btn" onclick="showSection('memory')">Memory</button>
-        </nav>
-
-        <div id="user-section">
-          <button class="btn secondary" id="login-button" onclick="showAuth()">Login / Sign Up</button>
-        </div>
-      </div>
-    </header>
-
-    <main>
-      <section id="dashboard" class="content">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
-          <div>
-            <h2 class="section-title">Daily Progress</h2>
-            <div class="tiny">Only foods you logged + meals marked as <b>Eaten</b> count toward totals.</div>
-          </div>
-
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <button class="btn secondary" onclick="changeViewDate(-1)">←</button>
-            <input type="date" id="view-date" onchange="onDateChange()" style="border-radius:8px;padding:8px 10px;">
-            <button class="btn secondary" onclick="changeViewDate(1)">→</button>
-            <button class="btn" onclick="goToToday()">Today</button>
-          </div>
-        </div>
-
-        <div style="margin-top:12px" class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <strong>Calories</strong>
-            <div id="calories-text" class="tiny">0 / 2000 cal</div>
-          </div>
-          <div style="margin-top:8px" class="progress-bar">
-            <div id="calories-progress" class="progress-fill">0%</div>
-          </div>
-        </div>
-
-        <div style="margin-top:12px" class="macro-grid">
-          <div class="macro-card">
-            <div class="tiny">Carbs</div>
-            <div class="macro-value"><span id="carbs-actual">0</span>g</div>
-            <div class="tiny muted">Goal: <span id="carbs-goal">250g</span></div>
-          </div>
-          <div class="macro-card">
-            <div class="tiny">Protein</div>
-            <div class="macro-value"><span id="protein-actual">0</span>g</div>
-            <div class="tiny muted">Goal: <span id="protein-goal">150g</span></div>
-          </div>
-          <div class="macro-card">
-            <div class="tiny">Fat</div>
-            <div class="macro-value"><span id="fat-actual">0</span>g</div>
-            <div class="tiny muted">Goal: <span id="fat-goal">67g</span></div>
-          </div>
-        </div>
-
-        <div style="margin-top:12px" class="card">
-          <h3 style="margin:0 0 8px 0">Planned Meals</h3>
-          <div class="tiny muted" style="margin-bottom:8px">Actions: Eat, Skip, Edit servings, Delete</div>
-          <div id="planned-meals-list" class="tiny muted">No meals planned yet.</div>
-        </div>
-
-        <div style="margin-top:12px" class="card">
-          <h3 style="margin:0 0 8px 0">Food Log</h3>
-          <div id="today-food-list" class="tiny muted">No food logged yet.</div>
-        </div>
-      </section>
-
-      <section id="profile" class="content" style="display:none">
-        <h2 class="section-title">Profile</h2>
-
-        <div class="card">
-          <div class="row">
-            <div class="input-group" style="flex:1;min-width:200px">
-              <label>Name</label>
-              <input type="text" id="user-name" placeholder="Your name">
-            </div>
-            <div class="input-group" style="flex:1;min-width:200px">
-              <label>Daily Calorie Goal</label>
-              <input type="number" id="daily-calories" value="2000">
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="input-group" style="flex:1;min-width:140px">
-              <label>Carbs Goal (g)</label>
-              <input type="number" id="carbs-goal-input" value="250">
-            </div>
-            <div class="input-group" style="flex:1;min-width:140px">
-              <label>Protein Goal (g)</label>
-              <input type="number" id="protein-goal-input" value="150">
-            </div>
-            <div class="input-group" style="flex:1;min-width:140px">
-              <label>Fat Goal (g)</label>
-              <input type="number" id="fat-goal-input" value="67">
-            </div>
-          </div>
-
-          <div class="input-group" style="margin-top:10px">
-            <label>Coach Memory Notes</label>
-            <textarea id="coach-memory-notes" placeholder="Examples: hockey days need carbs before games, seafood 3x/week, avoid mushrooms, Fairlife works well before late games..."></textarea>
-          </div>
-
-          <div class="row" style="margin-top:8px">
-            <button class="btn" onclick="saveProfile()">Save Profile</button>
-          </div>
-        </div>
-      </section>
-
-      <section id="coach" class="content" style="display:none">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
-          <div>
-            <h2 class="section-title">AI Nutrition Coach</h2>
-            <div class="tiny">Use this for advice, food logging by chat, repeating yesterday’s foods, and saving nutrition preferences. Multi-day plans now use the separate Plan Generator.</div>
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn secondary tiny" onclick="coachQuickPrompt('What should I eat before hockey tonight at 9pm?')">Pregame advice</button>
-            <button class="btn secondary tiny" onclick="coachQuickPrompt('Use the same breakfast I had yesterday again today.')">Repeat yesterday breakfast</button>
-            <button class="btn secondary tiny" onclick="coachQuickPrompt('I ate 2 eggs, toast, avocado, and a Fairlife shake. Parse that for my food log.')">Log what I ate</button>
-          </div>
-        </div>
-
-        <div style="margin-top:12px" class="chat-container" id="coach-chat-container">
-          <div class="chat-message assistant">
-            <strong>AI Nutrition Coach</strong>
-            <div class="tiny muted" style="margin-top:6px">
-              Best uses here:
-              <br>• performance nutrition advice
-              <br>• “what should I eat today?”
-              <br>• log foods from chat
-              <br>• repeat yesterday’s meals
-              <br>• save nutrition preferences
-            </div>
-          </div>
-        </div>
-
-        <div class="chat-input-row">
-          <input id="coach-chat-input" class="chat-input" placeholder="Example: What should I eat before hockey tonight?" onkeypress="if(event.key==='Enter') sendCoachMessage()">
-          <button class="btn" id="coach-send-btn" onclick="sendCoachMessage()">Send</button>
-        </div>
-
-        <div id="coach-action-area" style="margin-top:12px"></div>
-      </section>
-
-      <section id="planner" class="content" style="display:none">
-        <h2 class="section-title">Structured Plan Generator</h2>
-        <div class="tiny" style="margin-bottom:12px">Use this for multi-day and weekly plans so the coach chat doesn’t time out.</div>
-
-        <div class="card">
-          <div class="row">
-            <div class="input-group" style="flex:1;min-width:180px">
-              <label>Start Date</label>
-              <input type="date" id="plan-start-date">
-            </div>
-            <div class="input-group" style="flex:1;min-width:120px">
-              <label>Number of Days</label>
-              <input type="number" id="plan-days" value="6" min="1" max="14">
-            </div>
-          </div>
-
-          <div class="input-group">
-            <label>Schedule / Activity Details</label>
-            <textarea id="plan-schedule" placeholder="Example: Hockey Sat 9pm, Tue 7:25pm, Thu 8pm. Medium workout on other days."></textarea>
-          </div>
-
-          <div class="input-group">
-            <label>Extra Preferences</label>
-            <textarea id="plan-preferences" placeholder="Example: high protein, simple meals, seafood 2x/week, keep digestion light before late hockey games."></textarea>
-          </div>
-
-          <div class="row">
-            <button class="btn" id="planner-generate-btn" onclick="generateStructuredPlan()">Generate Structured Plan</button>
-            <button class="btn secondary" onclick="selectAllPlanSelections(true)">Select all</button>
-            <button class="btn secondary" onclick="selectAllPlanSelections(false)">Clear all</button>
-          </div>
-          <div id="planner-status" class="tiny" style="margin-top:8px"></div>
-        </div>
-
-        <div id="planner-results" style="margin-top:12px"></div>
-      </section>
-
-      <section id="foodlog" class="content" style="display:none">
-        <h2 class="section-title">Food Log</h2>
-
-        <div class="card">
-          <div class="row">
-            <div class="input-group" style="flex:2;min-width:220px">
-              <label>Food Name</label>
-              <input type="text" id="food-name" placeholder="e.g., Fairlife Protein Shake">
-            </div>
-            <div class="input-group" style="flex:1;min-width:120px">
-              <label>Servings</label>
-              <input type="number" id="food-servings" value="1" step="0.1" min="0.1">
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="input-group" style="flex:1;min-width:120px">
-              <label>Calories</label>
-              <input type="number" id="food-calories" placeholder="180">
-            </div>
-            <div class="input-group" style="flex:1;min-width:120px">
-              <label>Carbs (g)</label>
-              <input type="number" id="food-carbs" placeholder="4">
-            </div>
-            <div class="input-group" style="flex:1;min-width:120px">
-              <label>Protein (g)</label>
-              <input type="number" id="food-protein" placeholder="30">
-            </div>
-            <div class="input-group" style="flex:1;min-width:120px">
-              <label>Fat (g)</label>
-              <input type="number" id="food-fat" placeholder="2.5">
-            </div>
-          </div>
-
-          <div class="row" style="margin-top:8px">
-            <button class="btn" onclick="addFood()">Log Food</button>
-            <button class="btn secondary" onclick="repeatYesterdayFoods()">Copy yesterday’s foods to today</button>
-          </div>
-        </div>
-
-
-        <div class="card" style="margin-top:12px">
-          <h3 style="margin:0 0 8px 0">AI Helpers</h3>
-          <div class="tiny muted" style="margin-bottom:8px">Use AI to estimate macros from a food name or analyze a food photo. Photo analysis works best when the food and package are clearly visible.</div>
-          <div class="row">
-            <button class="btn secondary" onclick="estimateMacrosFromFoodName()">Estimate macros from food name</button>
-          </div>
-          <div class="row" style="margin-top:10px">
-            <div class="input-group" style="flex:2;min-width:220px">
-              <label>Food photo</label>
-              <input type="file" id="food-photo-input" accept="image/*">
-            </div>
-            <div style="display:flex;align-items:flex-end">
-              <button class="btn" onclick="analyzeFoodPhoto()">Analyze food photo</button>
-            </div>
-          </div>
-          <div id="food-ai-status" class="tiny" style="margin-top:8px"></div>
-        </div>
-
-        <div class="card" style="margin-top:12px">
-          <h3 style="margin:0 0 8px 0">Entries for selected date</h3>
-          <div id="food-log-list" class="tiny muted">No entries yet.</div>
-        </div>
-      </section>
-
-
-      <section id="shopping" class="content" style="display:none">
-        <h2 class="section-title">Shopping List</h2>
-
-        <div class="card">
-          <div class="tiny muted" style="margin-bottom:8px">This is a rough grocery list built from the ingredients inside your assigned meals. Because meal ingredients are currently simple text, counts are approximate and not yet unit-based.</div>
-          <div class="row">
-            <button class="btn" onclick="renderShoppingList()">Refresh Shopping List</button>
-          </div>
-        </div>
-
-        <div class="card" style="margin-top:12px">
-          <h3 style="margin:0 0 8px 0">Aggregated Ingredients</h3>
-          <div id="shopping-list" class="tiny muted">No assigned meal ingredients yet.</div>
-        </div>
-      </section>
-
-      <section id="memory" class="content" style="display:none">
-        <h2 class="section-title">Coach Memory</h2>
-
-        <div class="card">
-          <h3 style="margin:0 0 8px 0">Saved Insights</h3>
-          <div class="tiny muted" style="margin-bottom:8px">These are tips or patterns you chose to remember.</div>
-          <div id="coach-insights-list" class="tiny muted">No saved insights yet.</div>
-        </div>
-
-        <div class="card" style="margin-top:12px">
-          <h3 style="margin:0 0 8px 0">Recent Coach History</h3>
-          <div class="tiny muted" style="margin-bottom:8px">Recent conversation summaries used to give the coach more context.</div>
-          <div id="coach-history-list" class="tiny muted">No coach history yet.</div>
-        </div>
-      </section>
-    </main>
-  </div>
-
-  <div id="edit-meal-modal" class="modal">
-    <div class="modal-content">
-      <h3 style="margin:0 0 8px 0">Edit Meal Servings</h3>
-      <div id="edit-meal-title" class="tiny muted"></div>
-
-      <div class="input-group" style="margin-top:10px">
-        <label>Servings multiplier</label>
-        <input type="number" id="edit-meal-servings" step="0.1" min="0.1">
-      </div>
-
-      <div class="row">
-        <button class="btn" onclick="saveMealEdit()">Save</button>
-        <button class="btn secondary" onclick="closeEditMeal()">Cancel</button>
-      </div>
+<div class="container">
+  <header>
+    <div class="brand"><div class="logo">FT</div><div><h1>Food Tracker</h1><div class="subtitle">Pre-test build • Coach + stronger planner + saved foods</div></div></div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <nav>
+        <button class="nav-btn active" onclick="showSection('dashboard')">Dashboard</button>
+        <button class="nav-btn" onclick="showSection('profile')">Profile</button>
+        <button class="nav-btn" onclick="showSection('coach')">AI Nutrition Coach</button>
+        <button class="nav-btn" onclick="showSection('planner')">Plan Generator</button>
+        <button class="nav-btn" onclick="showSection('foodlog')">Food Log</button>
+        <button class="nav-btn" onclick="showSection('memory')">Memory</button>
+      </nav>
+      <div id="user-section"><button class="btn secondary" id="login-button" onclick="showAuth()">Login / Sign Up</button></div>
     </div>
-  </div>
+  </header>
 
-  <div id="auth-modal" class="modal">
-    <div class="modal-content">
-      <h3 style="margin:0 0 10px 0">Login / Sign Up</h3>
-      <div class="row">
-        <div class="input-group">
-          <label>Email</label>
-          <input id="login-email" type="email">
-        </div>
-        <div class="input-group">
-          <label>Password</label>
-          <input id="login-password" type="password">
-        </div>
+  <main>
+    <section id="dashboard" class="content">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+        <div><h2 class="section-title">Daily Progress</h2><div class="tiny">Only foods you logged + meals marked as <b>Eaten</b> count toward totals.</div></div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><button class="btn secondary" onclick="changeViewDate(-1)">←</button><input type="date" id="view-date" onchange="onDateChange()" style="border-radius:8px;padding:8px 10px;"><button class="btn secondary" onclick="changeViewDate(1)">→</button><button class="btn" onclick="goToToday()">Today</button></div>
       </div>
-      <div class="row">
-        <button class="btn" onclick="login()">Login</button>
-        <button class="btn secondary" onclick="signup()">Sign Up</button>
-        <button class="btn danger" onclick="closeAuth()">Close</button>
+      <div style="margin-top:12px" class="card"><div style="display:flex;justify-content:space-between;align-items:center"><strong>Calories</strong><div id="calories-text" class="tiny">0 / 2000 cal</div></div><div style="margin-top:8px" class="progress-bar"><div id="calories-progress" class="progress-fill">0%</div></div></div>
+      <div style="margin-top:12px" class="macro-grid"><div class="macro-card"><div class="tiny">Carbs</div><div class="macro-value"><span id="carbs-actual">0</span>g</div><div class="tiny muted">Goal: <span id="carbs-goal">250g</span></div></div><div class="macro-card"><div class="tiny">Protein</div><div class="macro-value"><span id="protein-actual">0</span>g</div><div class="tiny muted">Goal: <span id="protein-goal">150g</span></div></div><div class="macro-card"><div class="tiny">Fat</div><div class="macro-value"><span id="fat-actual">0</span>g</div><div class="tiny muted">Goal: <span id="fat-goal">67g</span></div></div></div>
+      <div style="margin-top:12px" class="card"><h3 style="margin:0 0 8px 0">Planned Meals</h3><div class="tiny muted" style="margin-bottom:8px">Actions: Eat, Skip, Edit servings, Delete</div><div id="planned-meals-list" class="tiny muted">No meals planned yet.</div></div>
+      <div style="margin-top:12px" class="card"><h3 style="margin:0 0 8px 0">Food Log</h3><div id="today-food-list" class="tiny muted">No food logged yet.</div></div>
+    </section>
+
+    <section id="profile" class="content" style="display:none">
+      <h2 class="section-title">Profile</h2>
+      <div class="card">
+        <div class="two-col">
+          <div class="input-group"><label>Name</label><input type="text" id="user-name" placeholder="Your name"></div>
+          <div class="input-group"><label>Daily Calorie Goal</label><input type="number" id="daily-calories" value="2000"></div>
+          <div class="input-group"><label>Carbs Goal (g)</label><input type="number" id="carbs-goal-input" value="250"></div>
+          <div class="input-group"><label>Protein Goal (g)</label><input type="number" id="protein-goal-input" value="150"></div>
+          <div class="input-group"><label>Fat Goal (g)</label><input type="number" id="fat-goal-input" value="67"></div>
+        </div>
+        <div class="input-group" style="margin-top:10px"><label>Coach Memory Notes</label><textarea id="coach-memory-notes" placeholder="Examples: hockey days need carbs before games, seafood 3x/week, avoid mushrooms, Fairlife works well before late games..."></textarea></div>
+        <div class="row" style="margin-top:8px"><button class="btn" onclick="saveProfile()">Save Profile</button></div>
       </div>
-    </div>
-  </div>
-
-  <script>
-    const BACKEND_URL = "https://foodtracker-backend.onrender.com";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyCVwscL-mtp9RBY1tUWxZKRCsVzYmcqUOk",
-      authDomain: "food-tracker-ca7bf.firebaseapp.com",
-      databaseURL: "https://food-tracker-ca7bf-default-rtdb.firebaseio.com",
-      projectId: "food-tracker-ca7bf",
-      storageBucket: "food-tracker-ca7bf.firebasestorage.app",
-      messagingSenderId: "251471207675",
-      appId: "1:251471207675:web:3bdde1caaba4deaa40245e",
-      measurementId: "G-2Z0ZT9XZJ6"
-    };
-
-    let firebaseInitialized = false;
-    let currentUser = null;
-    let database = null;
-
-    try {
-      firebase.initializeApp(firebaseConfig);
-      database = firebase.database();
-      firebaseInitialized = true;
-    } catch (e) {
-      console.warn("Firebase not available, local-only", e);
-    }
-
-    let userProfile = {
-      name: "",
-      goals: { calories: 2000, carbs: 250, protein: 150, fat: 67 },
-      coachMemoryNotes: ""
-    };
-
-    let foodLog = [];
-    let assignedMeals = [];
-    let coachHistory = [];
-    let coachInsights = [];
-    let lastCoachAction = null;
-    let lastPlannerAction = null;
-    let currentViewDate = new Date().toISOString().split("T")[0];
-    let editingMealId = null;
-
-    function uid(prefix="id"){ return prefix + "_" + Math.random().toString(36).slice(2,9); }
-    function toISODate(d){ return d.toISOString().split("T")[0]; }
-    function addDays(iso, n){
-      const d = new Date(iso + "T00:00:00");
-      d.setDate(d.getDate() + n);
-      return toISODate(d);
-    }
-    function escapeHtml(text=""){
-      return String(text || "").replace(/[&<>"']/g, m => ({
-        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-      })[m]);
-    }
-    function weekdayName(iso){
-      const d = new Date(iso + "T00:00:00");
-      return ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getDay()];
-    }
-    function extractFirstJsonObject(text){
-      if(!text) return null;
-      try { return JSON.parse(text); } catch(e){}
-      const first = text.indexOf("{");
-      const last = text.lastIndexOf("}");
-      if(first === -1 || last === -1 || last <= first) return null;
-      let sub = text.slice(first, last + 1);
-      sub = sub.replace(/,\s*([}\]])/g, "$1");
-      try { return JSON.parse(sub); } catch(e){}
-      return null;
-    }
-
-    function saveLocal(){
-      localStorage.setItem("ft_profile_v4", JSON.stringify(userProfile));
-      localStorage.setItem("ft_foodLog_v4", JSON.stringify(foodLog));
-      localStorage.setItem("ft_assignedMeals_v4", JSON.stringify(assignedMeals));
-      localStorage.setItem("ft_coachHistory_v4", JSON.stringify(coachHistory));
-      localStorage.setItem("ft_coachInsights_v4", JSON.stringify(coachInsights));
-    }
-
-    function loadLocal(){
-      try {
-        const p = JSON.parse(localStorage.getItem("ft_profile_v4"));
-        if(p) userProfile = p;
-        const fl = JSON.parse(localStorage.getItem("ft_foodLog_v4"));
-        if(Array.isArray(fl)) foodLog = fl;
-        const am = JSON.parse(localStorage.getItem("ft_assignedMeals_v4"));
-        if(Array.isArray(am)) assignedMeals = am;
-        const ch = JSON.parse(localStorage.getItem("ft_coachHistory_v4"));
-        if(Array.isArray(ch)) coachHistory = ch;
-        const ci = JSON.parse(localStorage.getItem("ft_coachInsights_v4"));
-        if(Array.isArray(ci)) coachInsights = ci;
-      } catch(e){}
-    }
-
-    async function saveCloud(){
-      saveLocal();
-      if(!firebaseInitialized || !currentUser) return;
-      await database.ref("users/" + currentUser.uid).update({
-        userProfile,
-        foodLog,
-        assignedMeals,
-        coachHistory,
-        coachInsights,
-        updatedAt: new Date().toISOString()
-      });
-    }
-
-    async function loadCloud(){
-      if(!firebaseInitialized || !currentUser) return;
-      const snap = await database.ref("users/" + currentUser.uid).once("value");
-      const data = snap.val();
-      if(!data) return;
-      if(data.userProfile) userProfile = data.userProfile;
-      if(Array.isArray(data.foodLog)) foodLog = data.foodLog;
-      if(Array.isArray(data.assignedMeals)) assignedMeals = data.assignedMeals;
-      if(Array.isArray(data.coachHistory)) coachHistory = data.coachHistory;
-      if(Array.isArray(data.coachInsights)) coachInsights = data.coachInsights;
-      saveLocal();
-      syncProfileUI();
-      updateAllDisplays();
-      renderMemorySections();
-    }
-
-    function showSection(id){
-      document.querySelectorAll("main > section").forEach(s => s.style.display = "none");
-      document.getElementById(id).style.display = "block";
-
-      document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-      document.querySelectorAll(".nav-btn").forEach(b => {
-        const t = b.textContent.toLowerCase();
-        if(id==="dashboard" && t.includes("dashboard")) b.classList.add("active");
-        if(id==="profile" && t.includes("profile")) b.classList.add("active");
-        if(id==="coach" && t.includes("coach")) b.classList.add("active");
-        if(id==="planner" && t.includes("plan")) b.classList.add("active");
-        if(id==="foodlog" && t.includes("food")) b.classList.add("active");
-        if(id==="shopping" && t.includes("shopping")) b.classList.add("active");
-        if(id==="memory" && t.includes("memory")) b.classList.add("active");
-      });
-
-      if(id==="dashboard") updateDashboard();
-      if(id==="foodlog") updateFoodLogDisplay();
-      if(id==="shopping") renderShoppingList();
-      if(id==="profile") syncProfileUI();
-      if(id==="memory") renderMemorySections();
-    }
-
-    function syncProfileUI(){
-      document.getElementById("user-name").value = userProfile.name || "";
-      document.getElementById("daily-calories").value = userProfile.goals?.calories ?? 2000;
-      document.getElementById("carbs-goal-input").value = userProfile.goals?.carbs ?? 250;
-      document.getElementById("protein-goal-input").value = userProfile.goals?.protein ?? 150;
-      document.getElementById("fat-goal-input").value = userProfile.goals?.fat ?? 67;
-      document.getElementById("coach-memory-notes").value = userProfile.coachMemoryNotes || "";
-    }
-
-    function saveProfile(){
-      userProfile.name = document.getElementById("user-name").value.trim();
-      userProfile.goals = {
-        calories: Number(document.getElementById("daily-calories").value) || 2000,
-        carbs: Number(document.getElementById("carbs-goal-input").value) || 250,
-        protein: Number(document.getElementById("protein-goal-input").value) || 150,
-        fat: Number(document.getElementById("fat-goal-input").value) || 67
-      };
-      userProfile.coachMemoryNotes = document.getElementById("coach-memory-notes").value.trim();
-      saveCloud();
-      updateAllDisplays();
-      alert("Profile saved.");
-    }
-
-    function initDate(){
-      document.getElementById("view-date").value = currentViewDate;
-      const tomorrow = addDays(currentViewDate, 1);
-      const plannerDate = document.getElementById("plan-start-date");
-      if(plannerDate) plannerDate.value = tomorrow;
-    }
-
-    function changeViewDate(delta){
-      const d = new Date(currentViewDate + "T00:00:00");
-      d.setDate(d.getDate() + delta);
-      currentViewDate = toISODate(d);
-      document.getElementById("view-date").value = currentViewDate;
-      updateAllDisplays();
-    }
-
-    function onDateChange(){
-      currentViewDate = document.getElementById("view-date").value;
-      updateAllDisplays();
-    }
-
-    function goToToday(){
-      currentViewDate = toISODate(new Date());
-      document.getElementById("view-date").value = currentViewDate;
-      updateAllDisplays();
-    }
-
-    function mealTotals(meal){
-      const s = Number(meal.servings || 1) || 1;
-      const m = meal.macrosPerServing || {};
-      return {
-        calories: (Number(m.calories)||0) * s,
-        carbs: (Number(m.carbs)||0) * s,
-        protein: (Number(m.protein)||0) * s,
-        fat: (Number(m.fat)||0) * s
-      };
-    }
-
-    function foodTotals(food){
-      const s = Number(food.servings || 1) || 1;
-      const m = food.macros || {};
-      return {
-        calories: (Number(m.calories)||0) * s,
-        carbs: (Number(m.carbs)||0) * s,
-        protein: (Number(m.protein)||0) * s,
-        fat: (Number(m.fat)||0) * s
-      };
-    }
-
-    function computeDailyTotals(date){
-      const totals = { calories:0, carbs:0, protein:0, fat:0 };
-
-      foodLog.filter(f => f.date === date).forEach(f => {
-        const t = foodTotals(f);
-        totals.calories += t.calories;
-        totals.carbs += t.carbs;
-        totals.protein += t.protein;
-        totals.fat += t.fat;
-      });
-
-      assignedMeals.filter(m => m.date === date && m.status === "eaten").forEach(m => {
-        const t = mealTotals(m);
-        totals.calories += t.calories;
-        totals.carbs += t.carbs;
-        totals.protein += t.protein;
-        totals.fat += t.fat;
-      });
-
-      return totals;
-    }
-
-    function updateDashboard(){
-      const totals = computeDailyTotals(currentViewDate);
-      const goals = userProfile.goals || { calories:2000, carbs:250, protein:150, fat:67 };
-
-      document.getElementById("calories-text").textContent = `${Math.round(totals.calories)} / ${goals.calories} cal`;
-      const pct = Math.min(100, Math.round((totals.calories / (goals.calories || 2000)) * 100));
-      const fill = document.getElementById("calories-progress");
-      fill.style.width = pct + "%";
-      fill.textContent = pct + "%";
-
-      document.getElementById("carbs-actual").textContent = Math.round(totals.carbs);
-      document.getElementById("protein-actual").textContent = Math.round(totals.protein);
-      document.getElementById("fat-actual").textContent = Math.round(totals.fat);
-
-      document.getElementById("carbs-goal").textContent = `${goals.carbs}g`;
-      document.getElementById("protein-goal").textContent = `${goals.protein}g`;
-      document.getElementById("fat-goal").textContent = `${goals.fat}g`;
-
-      renderPlannedMeals();
-      renderDashboardFoodLog();
-    }
-
-    function renderPlannedMeals(){
-      const items = assignedMeals
-        .filter(m => m.date === currentViewDate)
-        .sort((a,b) => (a.slot || "").localeCompare(b.slot || ""));
-
-      const root = document.getElementById("planned-meals-list");
-      if(!items.length){
-        root.innerHTML = `<div class="tiny muted">No meals planned for this day.</div>`;
-        return;
-      }
-
-      root.innerHTML = items.map(m => {
-        const t = mealTotals(m);
-        const pill = m.status === "eaten"
-          ? `<span class="pill">Eaten</span>`
-          : m.status === "skipped"
-            ? `<span class="pill red">Skipped</span>`
-            : `<span class="pill blue">Planned</span>`;
-
-        return `
-          <div class="meal-slot">
-            <div style="flex:1;min-width:220px">
-              <div class="meal-slot-title">${escapeHtml((m.slot || "").toUpperCase())}: ${escapeHtml(m.name)} ${pill}</div>
-              <div class="meal-slot-meta">${escapeHtml(m.description || "")}</div>
-              <div class="meal-slot-meta">
-                Servings: <b>${Number(m.servings || 1)}</b> •
-                ${Math.round(t.calories)} kcal •
-                ${Math.round(t.carbs)}c •
-                ${Math.round(t.protein)}p •
-                ${Math.round(t.fat)}f
-              </div>
-            </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <button class="btn tiny" onclick="setMealStatus('${m.id}','eaten')">Eat</button>
-              <button class="btn secondary tiny" onclick="setMealStatus('${m.id}','skipped')">Skip</button>
-              <button class="btn secondary tiny" onclick="openEditMeal('${m.id}')">Edit</button>
-              <button class="btn danger tiny" onclick="deleteMeal('${m.id}')">Delete</button>
-            </div>
-          </div>
-        `;
-      }).join("");
-    }
-
-    function setMealStatus(id, status){
-      const meal = assignedMeals.find(m => m.id === id);
-      if(!meal) return;
-      meal.status = status;
-      saveCloud();
-      updateAllDisplays();
-    }
-
-    function deleteMeal(id){
-      if(!confirm("Delete this planned meal?")) return;
-      assignedMeals = assignedMeals.filter(m => m.id !== id);
-      saveCloud();
-      updateAllDisplays();
-    }
-
-    function openEditMeal(id){
-      const meal = assignedMeals.find(m => m.id === id);
-      if(!meal) return;
-      editingMealId = id;
-      document.getElementById("edit-meal-title").textContent = `${meal.date} • ${(meal.slot||"").toUpperCase()} • ${meal.name}`;
-      document.getElementById("edit-meal-servings").value = Number(meal.servings || 1);
-      document.getElementById("edit-meal-modal").classList.add("show");
-    }
-
-    function closeEditMeal(){
-      editingMealId = null;
-      document.getElementById("edit-meal-modal").classList.remove("show");
-    }
-
-    function saveMealEdit(){
-      const meal = assignedMeals.find(m => m.id === editingMealId);
-      if(!meal) return closeEditMeal();
-      const servings = Number(document.getElementById("edit-meal-servings").value);
-      if(!servings || servings <= 0) return alert("Servings must be greater than 0");
-      meal.servings = servings;
-      saveCloud();
-      closeEditMeal();
-      updateAllDisplays();
-    }
-
-    function renderDashboardFoodLog(){
-      const items = foodLog.filter(f => f.date === currentViewDate);
-      const root = document.getElementById("today-food-list");
-      if(!items.length){
-        root.innerHTML = `<div class="tiny muted">No food logged yet.</div>`;
-        return;
-      }
-
-      root.innerHTML = items.map(f => {
-        const t = foodTotals(f);
-        return `
-          <div class="meal-slot">
-            <div style="flex:1">
-              <div class="meal-slot-title">${escapeHtml(f.name)}</div>
-              <div class="meal-slot-meta">
-                Servings: <b>${Number(f.servings||1)}</b> • ${Math.round(t.calories)} kcal
-              </div>
-            </div>
-            <div>
-              <button class="btn danger tiny" onclick="deleteFood('${f.id}')">Delete</button>
-            </div>
-          </div>
-        `;
-      }).join("");
-    }
-
-    function addFood(){
-      const name = document.getElementById("food-name").value.trim();
-      if(!name) return alert("Enter a food name");
-
-      const servings = Number(document.getElementById("food-servings").value) || 1;
-      const calories = Number(document.getElementById("food-calories").value) || 0;
-      const carbs = Number(document.getElementById("food-carbs").value) || 0;
-      const protein = Number(document.getElementById("food-protein").value) || 0;
-      const fat = Number(document.getElementById("food-fat").value) || 0;
-
-      foodLog.unshift({
-        id: uid("food"),
-        date: currentViewDate,
-        name,
-        servings,
-        macros: { calories, carbs, protein, fat }
-      });
-
-      saveCloud();
-      updateAllDisplays();
-      document.getElementById("food-name").value = "";
-    }
-
-    function deleteFood(id){
-      foodLog = foodLog.filter(f => f.id !== id);
-      saveCloud();
-      updateAllDisplays();
-    }
-
-    function updateFoodLogDisplay(){
-      const items = foodLog.filter(f => f.date === currentViewDate);
-      const root = document.getElementById("food-log-list");
-
-      if(!items.length){
-        root.innerHTML = `<div class="tiny muted">No entries for this date.</div>`;
-        return;
-      }
-
-      root.innerHTML = items.map(f => {
-        const t = foodTotals(f);
-        return `
-          <div class="meal-slot">
-            <div style="flex:1">
-              <div class="meal-slot-title">${escapeHtml(f.name)}</div>
-              <div class="meal-slot-meta">
-                Servings: <b>${Number(f.servings||1)}</b> •
-                ${Math.round(t.calories)} kcal •
-                ${Math.round(t.carbs)}c •
-                ${Math.round(t.protein)}p •
-                ${Math.round(t.fat)}f
-              </div>
-            </div>
-            <div>
-              <button class="btn danger tiny" onclick="deleteFood('${f.id}')">Delete</button>
-            </div>
-          </div>
-        `;
-      }).join("");
-    }
-
-    function getFoodsForDate(date){
-      return foodLog.filter(f => f.date === date);
-    }
-
-    function repeatYesterdayFoods(){
-      const yesterday = addDays(currentViewDate, -1);
-      const yFoods = getFoodsForDate(yesterday);
-      if(!yFoods.length) return alert("No foods found for yesterday.");
-
-      yFoods.forEach(f => {
-        foodLog.unshift({
-          ...JSON.parse(JSON.stringify(f)),
-          id: uid("food"),
-          date: currentViewDate
-        });
-      });
-
-      saveCloud();
-      updateAllDisplays();
-      alert("Copied yesterday’s foods to today.");
-    }
-
-    function getRecentFoodHistory(days = 3){
-      const arr = [];
-      for(let i=0;i<days;i++){
-        const date = addDays(currentViewDate, -i);
-        const foods = foodLog.filter(f => f.date === date).map(f => ({
-          name: f.name,
-          servings: f.servings,
-          macros: f.macros
-        }));
-        const meals = assignedMeals
-          .filter(m => m.date === date)
-          .map(m => ({
-            slot: m.slot,
-            name: m.name,
-            servings: m.servings,
-            status: m.status
-          }));
-        if(foods.length || meals.length){
-          arr.push({ date, foods, meals });
-        }
-      }
-      return arr;
-    }
-
-    function getYesterdaySummary(){
-      const yesterday = addDays(currentViewDate, -1);
-      return {
-        date: yesterday,
-        foods: getFoodsForDate(yesterday),
-        meals: assignedMeals.filter(m => m.date === yesterday)
-      };
-    }
-
-    function getRecentCoachHistory(limit = 3){
-      return coachHistory.slice(-limit);
-    }
-
-    function getRecentCoachInsights(limit = 3){
-      return coachInsights.slice(-limit);
-    }
-
-    function coachQuickPrompt(text){
-      document.getElementById("coach-chat-input").value = text;
-      sendCoachMessage();
-    }
-
-    function appendCoachMessage(text, role){
-      const container = document.getElementById("coach-chat-container");
-      const div = document.createElement("div");
-      div.className = "chat-message " + (role === "user" ? "user" : "assistant");
-      div.innerHTML = role === "user"
-        ? `<div style="font-weight:800">You</div><div style="margin-top:6px">${escapeHtml(text)}</div>`
-        : `<div style="font-weight:800">AI Nutrition Coach</div><div style="margin-top:6px">${text}</div>`;
-      container.appendChild(div);
-      container.scrollTop = container.scrollHeight;
-    }
-
-    async function callOpenAI(messages = [], maxTokens = 1200, temperature = 0.3, timeoutMs = 90000){
-      const controller = new AbortController();
-      const t = setTimeout(() => controller.abort(), timeoutMs);
-
-      try{
-        const res = await fetch(`${BACKEND_URL}/api/ai`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages, max_tokens: maxTokens, temperature }),
-          signal: controller.signal
-        });
-
-        if(!res.ok){
-          const txt = await res.text();
-          throw new Error(`AI backend error: ${res.status} ${txt}`);
-        }
-
-        const data = await res.json();
-        return data?.choices?.[0]?.message?.content || "";
-      } catch(e){
-        if(e.name === "AbortError"){
-          throw new Error(`Request timed out after ${Math.round(timeoutMs/1000)} seconds.`);
-        }
-        throw e;
-      } finally {
-        clearTimeout(t);
-      }
-    }
-
-    async function sendCoachMessage(){
-      const input = document.getElementById("coach-chat-input");
-      const text = input.value.trim();
-      if(!text) return;
-
-      input.value = "";
-      appendCoachMessage(text, "user");
-
-      const btn = document.getElementById("coach-send-btn");
-      btn.disabled = true;
-      btn.textContent = "Thinking…";
-
-      const yesterdaySummary = getYesterdaySummary();
-      const recentFoodHistory = getRecentFoodHistory(3);
-      const recentCoachHistory = getRecentCoachHistory(3);
-      const recentCoachInsights = getRecentCoachInsights(3);
-      const todayFoods = foodLog.filter(f => f.date === currentViewDate);
-      const todayMeals = assignedMeals.filter(m => m.date === currentViewDate);
-
-      const system = `
-You are an AI Nutrition Coach for a food-tracking app.
-Return ONLY valid JSON.
-
-Schema:
-{
-  "reply": "string",
-  "intent": "advice" | "log_food" | "save_preference" | "adjust_day",
-  "foods": [
-    {
-      "name": "string",
-      "servings": number,
-      "macros": { "calories": number, "carbs": number, "protein": number, "fat": number }
-    }
-  ],
-  "plan": {
-    "days": [
-      {
-        "date": "YYYY-MM-DD",
-        "targets": { "calories": number, "carbs": number, "protein": number, "fat": number },
-        "meals": [
-          {
-            "slot": "breakfast" | "lunch" | "dinner" | "snack",
-            "name": "string",
-            "description": "string",
-            "servings": number,
-            "macros": { "calories": number, "carbs": number, "protein": number, "fat": number },
-            "ingredients": ["string"]
-          }
-        ]
-      }
-    ]
-  },
-  "preference": {
-    "note": "string"
-  }
-}
-
-Rules:
-- This coach is NOT for weekly plan generation. If user asks for a multi-day or weekly plan, respond with intent "advice" and tell them to use the Plan Generator.
-- Always include "reply" and "intent".
-- Use the provided recent history, yesterday's foods, saved coach insights, and coach memory notes.
-- If the user asks to repeat yesterday's breakfast/meal/foods, use the actual yesterday context provided.
-- If the user says they ate foods, parse them into "foods" and use intent "log_food".
-- If the user asks for recommendations only, use "advice".
-- If the user says to remember a preference or useful rule, use "save_preference".
-- For sports/performance days, include timing-aware fueling advice.
-- Keep reply concise.
-`;
-
-      const userPayload = {
-        userMessage: text,
-        currentDate: currentViewDate,
-        profile: userProfile,
-        todayFoods,
-        todayPlannedMeals: todayMeals,
-        yesterdaySummary,
-        recentFoodHistory,
-        recentCoachHistory,
-        recentCoachInsights
-      };
-
-      try{
-        const raw = await callOpenAI([
-          { role: "system", content: system.trim() },
-          { role: "user", content: JSON.stringify(userPayload) }
-        ], 900, 0.3, 60000);
-
-        const parsed = extractFirstJsonObject(raw);
-        if(!parsed || !parsed.reply || !parsed.intent){
-          console.log("Coach raw response:", raw);
-          throw new Error("Coach returned invalid format");
-        }
-
-        appendCoachMessage(formatCoachReply(parsed.reply), "assistant");
-        lastCoachAction = parsed;
-
-        coachHistory.push({
-          timestamp: new Date().toISOString(),
-          userMessage: text,
-          assistantReply: parsed.reply,
-          intent: parsed.intent
-        });
-        if(coachHistory.length > 40) coachHistory = coachHistory.slice(-40);
-
-        saveCloud();
-        renderCoachActionArea(parsed);
-        renderMemorySections();
-
-      } catch(e){
-        appendCoachMessage(`Sorry — I couldn't complete that request. ${escapeHtml(e.message || String(e))}`, "assistant");
-      } finally {
-        btn.disabled = false;
-        btn.textContent = "Send";
-      }
-    }
-
-    function formatCoachReply(text){
-      return escapeHtml(text).replace(/\n/g, "<br>");
-    }
-
-    function renderCoachActionArea(action){
-      const root = document.getElementById("coach-action-area");
-
-      if(!action){
-        root.innerHTML = "";
-        return;
-      }
-
-      if(action.intent === "advice"){
-        root.innerHTML = `
-          <div class="coach-action-box">
-            <div class="tiny">Advice only. Use the separate <b>Plan Generator</b> for multi-day structured meal plans.</div>
-            <div style="margin-top:10px">
-              <button class="btn" onclick="saveLastReplyAsInsight()">Save this reply as insight</button>
-              <button class="btn secondary" onclick="showSection('planner')">Open Plan Generator</button>
-            </div>
-          </div>
-        `;
-        return;
-      }
-
-      if(action.intent === "save_preference" && action.preference?.note){
-        root.innerHTML = `
-          <div class="coach-action-box">
-            <div style="font-weight:900">Suggested memory to save</div>
-            <div class="tiny" style="margin-top:6px">${escapeHtml(action.preference.note)}</div>
-            <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
-              <button class="btn" onclick="confirmSaveCoachPreference()">Save to profile memory</button>
-              <button class="btn secondary" onclick="saveLastReplyAsInsight()">Save whole reply as insight</button>
-            </div>
-          </div>
-        `;
-        return;
-      }
-
-      if(action.intent === "log_food" && Array.isArray(action.foods) && action.foods.length){
-        root.innerHTML = `
-          <div class="coach-action-box">
-            <div style="font-weight:900">Ready to log these foods for ${escapeHtml(currentViewDate)}</div>
-            <div style="margin-top:8px">
-              ${action.foods.map(f => `
-                <div class="meal-slot">
-                  <div style="flex:1">
-                    <div class="meal-slot-title">${escapeHtml(f.name)}</div>
-                    <div class="meal-slot-meta">
-                      ${Number(f.servings || 1)} serving(s) •
-                      ${Math.round(f?.macros?.calories || 0)} kcal •
-                      ${Math.round(f?.macros?.carbs || 0)}c •
-                      ${Math.round(f?.macros?.protein || 0)}p •
-                      ${Math.round(f?.macros?.fat || 0)}f
-                    </div>
-                  </div>
-                </div>
-              `).join("")}
-            </div>
-            <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
-              <button class="btn" onclick="confirmLogFoodsFromCoach()">Log these foods</button>
-              <button class="btn secondary" onclick="saveLastReplyAsInsight()">Save this reply as insight</button>
-            </div>
-          </div>
-        `;
-        return;
-      }
-
-      if(action.intent === "adjust_day" && action.plan?.days?.length){
-        root.innerHTML = `
-          <div class="coach-action-box">
-            <div style="font-weight:900">Adjusted day plan ready</div>
-            <div class="tiny" style="margin-top:6px">Review it below, then assign it to your dashboard.</div>
-            <div style="margin-top:10px">
-              ${renderPlanHtml(action.plan.days, "coach")}
-            </div>
-            <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
-              <button class="btn" onclick="confirmAssignCoachPlan()">Assign selected meals</button>
-              <button class="btn secondary" onclick="toggleSelections('coach', true)">Select all</button>
-              <button class="btn secondary" onclick="toggleSelections('coach', false)">Clear all</button>
-            </div>
-          </div>
-        `;
-        return;
-      }
-
-      root.innerHTML = `
-        <div class="coach-action-box">
-          <div class="tiny">No supported app action was returned.</div>
-          <div style="margin-top:10px">
-            <button class="btn secondary" onclick="saveLastReplyAsInsight()">Save this reply as insight</button>
-          </div>
+    </section>
+
+    <section id="coach" class="content" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+        <div><h2 class="section-title">AI Nutrition Coach</h2><div class="tiny">Use this for advice, food logging by chat, repeating yesterday’s foods, and saving nutrition preferences. Use Plan Generator for multi-day plans.</div></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn secondary tiny" onclick="coachQuickPrompt('What should I eat before hockey tonight at 9pm?')">Pregame advice</button><button class="btn secondary tiny" onclick="coachQuickPrompt('Use the same breakfast I had yesterday again today.')">Repeat yesterday breakfast</button><button class="btn secondary tiny" onclick="coachQuickPrompt('I ate 2 eggs, toast, avocado, and a Fairlife shake. Parse that for my food log.')">Log what I ate</button></div>
+      </div>
+      <div style="margin-top:12px" class="chat-container" id="coach-chat-container"><div class="chat-message assistant"><strong>AI Nutrition Coach</strong><div class="tiny muted" style="margin-top:6px">Best uses here:<br>• performance nutrition advice<br>• food logging by chat<br>• repeat yesterday’s meals<br>• save nutrition preferences</div></div></div>
+      <div class="chat-input-row"><input id="coach-chat-input" class="chat-input" placeholder="Example: What should I eat before hockey tonight?" onkeypress="if(event.key==='Enter') sendCoachMessage()"><button class="btn" id="coach-send-btn" onclick="sendCoachMessage()">Send</button></div>
+      <div id="coach-action-area" style="margin-top:12px"></div>
+    </section>
+
+    <section id="planner" class="content" style="display:none">
+      <h2 class="section-title">Plan Generator</h2>
+      <div class="tiny" style="margin-bottom:12px">This is the stronger pre-test planner. It uses two steps: schedule parse first, then day-by-day meal generation.</div>
+      <div class="card">
+        <div class="two-col"><div class="input-group"><label>Start Date</label><input type="date" id="plan-start-date"></div><div class="input-group"><label>Number of Days</label><input type="number" id="plan-days" value="6" min="1" max="14"></div></div>
+        <div class="input-group"><label>Schedule / Activity Details</label><textarea id="plan-schedule" placeholder="Example: Hockey Saturday 9pm, Tuesday 7:25pm, Thursday 8pm. Medium workout on the other days."></textarea></div>
+        <div class="input-group"><label>Extra Preferences</label><textarea id="plan-preferences" placeholder="Example: high protein, simple meals, light digestion before hockey, seafood twice per week."></textarea></div>
+        <div class="row"><button class="btn secondary" onclick="fillHockeyTemplate()">Hockey Template</button><button class="btn" id="planner-generate-btn" onclick="generateStructuredPlan()">Generate Plan</button><button class="btn secondary" onclick="toggleSelections('planner', true)">Select all</button><button class="btn secondary" onclick="toggleSelections('planner', false)">Clear all</button></div>
+        <div id="planner-status" class="tiny" style="margin-top:8px"></div>
+      </div>
+      <div id="planner-parse-preview" style="margin-top:12px"></div>
+      <div id="planner-results" style="margin-top:12px"></div>
+    </section>
+
+    <section id="foodlog" class="content" style="display:none">
+      <h2 class="section-title">Food Log</h2>
+      <div class="card">
+        <h3 style="margin:0 0 8px 0">Manual Entry</h3>
+        <div class="two-col">
+          <div class="input-group"><label>Food Name</label><input type="text" id="food-name" placeholder="e.g., Fairlife Protein Shake"></div>
+          <div class="input-group"><label>Servings</label><input type="number" id="food-servings" value="1" step="0.1" min="0.1"></div>
+          <div class="input-group"><label>Calories</label><input type="number" id="food-calories" placeholder="180"></div>
+          <div class="input-group"><label>Carbs (g)</label><input type="number" id="food-carbs" placeholder="4"></div>
+          <div class="input-group"><label>Protein (g)</label><input type="number" id="food-protein" placeholder="30"></div>
+          <div class="input-group"><label>Fat (g)</label><input type="number" id="food-fat" placeholder="2.5"></div>
         </div>
-      `;
-    }
+        <div class="row" style="margin-top:8px"><button class="btn" onclick="addFood()">Log Food</button><button class="btn secondary" onclick="saveCurrentItem('food')">Save as Food</button><button class="btn secondary" onclick="saveCurrentItem('recipe')">Save as Recipe</button><button class="btn secondary" onclick="repeatYesterdayFoods()">Copy yesterday’s foods to today</button></div>
+      </div>
+      <div class="two-col" style="margin-top:12px"><div class="card"><h3 style="margin:0 0 8px 0">Saved Foods</h3><div id="saved-foods-list" class="tiny muted">No saved foods yet.</div></div><div class="card"><h3 style="margin:0 0 8px 0">Saved Recipes</h3><div id="saved-recipes-list" class="tiny muted">No saved recipes yet.</div></div></div>
+      <div class="card" style="margin-top:12px"><h3 style="margin:0 0 8px 0">Entries for selected date</h3><div id="food-log-list" class="tiny muted">No entries yet.</div></div>
+    </section>
 
-    async function generateStructuredPlan(){
-      const startDate = document.getElementById("plan-start-date").value;
-      const days = Math.max(1, Math.min(14, Number(document.getElementById("plan-days").value) || 6));
-      const schedule = document.getElementById("plan-schedule").value.trim();
-      const preferences = document.getElementById("plan-preferences").value.trim();
-      const status = document.getElementById("planner-status");
-      const btn = document.getElementById("planner-generate-btn");
+    <section id="memory" class="content" style="display:none">
+      <h2 class="section-title">Coach Memory</h2>
+      <div class="card"><h3 style="margin:0 0 8px 0">Saved Insights</h3><div class="tiny muted" style="margin-bottom:8px">These are tips or patterns you chose to remember.</div><div id="coach-insights-list" class="tiny muted">No saved insights yet.</div></div>
+      <div class="card" style="margin-top:12px"><h3 style="margin:0 0 8px 0">Recent Coach History</h3><div class="tiny muted" style="margin-bottom:8px">Recent conversation summaries used to give the coach more context.</div><div id="coach-history-list" class="tiny muted">No coach history yet.</div></div>
+    </section>
+  </main>
+</div>
 
-      if(!startDate) return alert("Choose a start date.");
+<div id="edit-meal-modal" class="modal"><div class="modal-content"><h3 style="margin:0 0 8px 0">Edit Meal Servings</h3><div id="edit-meal-title" class="tiny muted"></div><div class="input-group" style="margin-top:10px"><label>Servings multiplier</label><input type="number" id="edit-meal-servings" step="0.1" min="0.1"></div><div class="row"><button class="btn" onclick="saveMealEdit()">Save</button><button class="btn secondary" onclick="closeEditMeal()">Cancel</button></div></div></div>
+<div id="auth-modal" class="modal"><div class="modal-content"><h3 style="margin:0 0 10px 0">Login / Sign Up</h3><div class="two-col"><div class="input-group"><label>Email</label><input id="login-email" type="email"></div><div class="input-group"><label>Password</label><input id="login-password" type="password"></div></div><div class="row"><button class="btn" onclick="login()">Login</button><button class="btn secondary" onclick="signup()">Sign Up</button><button class="btn danger" onclick="closeAuth()">Close</button></div></div></div>
 
-      status.textContent = "Generating structured plan…";
-      btn.disabled = true;
-      btn.textContent = "Generating…";
-
-      const system = `
-You are a structured meal planner for a nutrition app.
-Return ONLY valid minified JSON. No markdown. No explanations before or after the JSON.
-
-Schema:
-{
-  "reply": "string",
-  "plan": {
-    "days": [
-      {
-        "date": "YYYY-MM-DD",
-        "targets": { "calories": number, "carbs": number, "protein": number, "fat": number },
-        "meals": [
-          {
-            "slot": "breakfast" | "lunch" | "dinner" | "snack",
-            "name": "string",
-            "description": "string",
-            "servings": number,
-            "macros": { "calories": number, "carbs": number, "protein": number, "fat": number },
-            "ingredients": ["string"]
-          }
-        ]
-      }
-    ]
-  }
-}
-
-Rules:
-- Generate a practical multi-day plan.
-- Respect the user's goals and schedule.
-- If there are hockey games, create timing-aware meals/snacks for those days.
-- If there are workout days, support performance and recovery.
-- Keep meal descriptions short (max 12 words).
-- Keep ingredients simple and grocery-friendly.
-- Breakfast/lunch/dinner should make sense for each day.
-- If useful, include a snack on hockey days.
-- Return clean JSON only.
-`;
-
-      const userPayload = {
-        startDate,
-        days,
-        schedule,
-        preferences,
-        profile: userProfile
-      };
-
-      try{
-        const raw = await callOpenAI([
-          { role: "system", content: system.trim() },
-          { role: "user", content: JSON.stringify(userPayload) }
-        ], 1500, 0.25, 120000);
-
-        const parsed = extractFirstJsonObject(raw);
-        if(!parsed?.plan?.days?.length){
-          console.log("Planner raw response:", raw);
-          throw new Error("Planner returned invalid format");
-        }
-
-        lastPlannerAction = parsed;
-        status.textContent = parsed.reply || "Plan generated.";
-        renderPlannerResults(parsed.plan.days);
-
-      } catch(e){
-        status.textContent = "Failed: " + (e.message || String(e));
-        document.getElementById("planner-results").innerHTML = "";
-        alert("Structured plan failed: " + (e.message || e));
-      } finally {
-        btn.disabled = false;
-        btn.textContent = "Generate Structured Plan";
-      }
-    }
-
-    function renderPlanHtml(days, prefix){
-      return days.map((d, dayIdx) => `
-        <div class="meal-day">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
-            <div>
-              <div style="font-weight:900">${escapeHtml(d.date)} <span class="pill">${escapeHtml(weekdayName(d.date))}</span></div>
-              <div class="tiny">
-                Targets:
-                ${Math.round(d?.targets?.calories || 0)} kcal •
-                ${Math.round(d?.targets?.carbs || 0)}c •
-                ${Math.round(d?.targets?.protein || 0)}p •
-                ${Math.round(d?.targets?.fat || 0)}f
-              </div>
-            </div>
-          </div>
-
-          ${(d.meals || []).map((m, mealIdx) => {
-            const cbId = `${prefix}_plan_${dayIdx}_${mealIdx}`;
-            return `
-              <div class="meal-slot">
-                <div style="flex:1;min-width:220px">
-                  <div class="meal-slot-title">${escapeHtml((m.slot || "").toUpperCase())}: ${escapeHtml(m.name)}</div>
-                  <div class="meal-slot-meta">${escapeHtml(m.description || "")}</div>
-                  <div class="meal-slot-meta">
-                    ${Math.round(m?.macros?.calories || 0)} kcal •
-                    ${Math.round(m?.macros?.carbs || 0)}c •
-                    ${Math.round(m?.macros?.protein || 0)}p •
-                    ${Math.round(m?.macros?.fat || 0)}f
-                  </div>
-                </div>
-                <div style="display:flex;align-items:center;gap:8px">
-                  <label class="tiny" style="display:flex;align-items:center;gap:8px">
-                    <input type="checkbox" id="${cbId}" checked>
-                    Select
-                  </label>
-                </div>
-              </div>
-            `;
-          }).join("")}
-        </div>
-      `).join("");
-    }
-
-    function renderPlannerResults(days){
-      const root = document.getElementById("planner-results");
-      root.innerHTML = `
-        <div class="coach-action-box">
-          <div style="font-weight:900">Structured plan ready</div>
-          <div class="tiny" style="margin-top:6px">Review it below, then assign the meals you want to your dashboard.</div>
-          <div style="margin-top:10px">${renderPlanHtml(days, "planner")}</div>
-          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn" onclick="assignPlannerMeals()">Assign selected meals</button>
-            <button class="btn secondary" onclick="toggleSelections('planner', true)">Select all</button>
-            <button class="btn secondary" onclick="toggleSelections('planner', false)">Clear all</button>
-          </div>
-        </div>
-      `;
-    }
-
-    function toggleSelections(prefix, on){
-      const source = prefix === "planner" ? lastPlannerAction?.plan?.days : lastCoachAction?.plan?.days;
-      if(!source?.length) return;
-      source.forEach((d, dayIdx) => {
-        (d.meals || []).forEach((m, mealIdx) => {
-          const cb = document.getElementById(`${prefix}_plan_${dayIdx}_${mealIdx}`);
-          if(cb) cb.checked = !!on;
-        });
-      });
-    }
-
-    function selectAllPlanSelections(on){
-      toggleSelections("planner", on);
-    }
-
-    function assignDaysToDashboard(days, prefix){
-      let count = 0;
-      days.forEach((d, dayIdx) => {
-        (d.meals || []).forEach((m, mealIdx) => {
-          const cb = document.getElementById(`${prefix}_plan_${dayIdx}_${mealIdx}`);
-          if(!cb || !cb.checked) return;
-
-          assignedMeals.push({
-            id: uid("meal"),
-            date: d.date,
-            slot: m.slot || "meal",
-            name: m.name || "Meal",
-            description: m.description || "",
-            servings: Number(m.servings || 1) || 1,
-            macrosPerServing: {
-              calories: Number(m?.macros?.calories || 0) || 0,
-              carbs: Number(m?.macros?.carbs || 0) || 0,
-              protein: Number(m?.macros?.protein || 0) || 0,
-              fat: Number(m?.macros?.fat || 0) || 0
-            },
-            ingredients: Array.isArray(m.ingredients) ? m.ingredients : [],
-            status: "planned",
-            source: prefix
-          });
-          count++;
-        });
-      });
-      return count;
-    }
-
-    function assignPlannerMeals(){
-      const days = lastPlannerAction?.plan?.days;
-      if(!Array.isArray(days) || !days.length) return alert("No structured plan available.");
-      const count = assignDaysToDashboard(days, "planner");
-      if(!count) return alert("No meals selected.");
-
-      saveCloud();
-      currentViewDate = days[0].date;
-      document.getElementById("view-date").value = currentViewDate;
-      updateAllDisplays();
-      showSection("dashboard");
-      alert(`Assigned ${count} meals to the dashboard.`);
-    }
-
-    function confirmAssignCoachPlan(){
-      const days = lastCoachAction?.plan?.days;
-      if(!Array.isArray(days) || !days.length) return;
-      const count = assignDaysToDashboard(days, "coach");
-      if(!count) return alert("No meals selected.");
-      saveCloud();
-      currentViewDate = days[0].date;
-      document.getElementById("view-date").value = currentViewDate;
-      updateAllDisplays();
-      showSection("dashboard");
-      alert(`Assigned ${count} meals to the dashboard.`);
-    }
-
-    function confirmSaveCoachPreference(){
-      const note = lastCoachAction?.preference?.note;
-      if(!note) return;
-      userProfile.coachMemoryNotes = [userProfile.coachMemoryNotes, note].filter(Boolean).join("\n");
-      saveCloud();
-      syncProfileUI();
-      alert("Saved to profile memory.");
-    }
-
-    function saveLastReplyAsInsight(){
-      const reply = lastCoachAction?.reply;
-      if(!reply) return alert("No reply available to save.");
-      coachInsights.unshift({
-        id: uid("insight"),
-        text: reply,
-        createdAt: new Date().toISOString()
-      });
-      if(coachInsights.length > 30) coachInsights = coachInsights.slice(0, 30);
-      saveCloud();
-      renderMemorySections();
-      alert("Saved as insight.");
-    }
-
-    function confirmLogFoodsFromCoach(){
-      const foods = lastCoachAction?.foods;
-      if(!Array.isArray(foods) || !foods.length) return;
-
-      foods.forEach(f => {
-        foodLog.unshift({
-          id: uid("food"),
-          date: currentViewDate,
-          name: f.name || "Food",
-          servings: Number(f.servings || 1) || 1,
-          macros: {
-            calories: Number(f?.macros?.calories || 0) || 0,
-            carbs: Number(f?.macros?.carbs || 0) || 0,
-            protein: Number(f?.macros?.protein || 0) || 0,
-            fat: Number(f?.macros?.fat || 0) || 0
-          }
-        });
-      });
-
-      saveCloud();
-      updateAllDisplays();
-      showSection("dashboard");
-      alert("Foods logged.");
-    }
-
-
-    function fillHockeyTemplate(){
-      const schedule = document.getElementById("plan-schedule");
-      const prefs = document.getElementById("plan-preferences");
-      if(schedule) schedule.value = "Hockey Sat 9pm, Tue 7:25pm, Thu 8pm. Medium workout on other days.";
-      if(prefs && !prefs.value.trim()) prefs.value = "High protein, simple meals, easier digestion before late hockey games, add a pregame snack and a postgame recovery option.";
-    }
-
-    function normalizeIngredientName(name=""){
-      return String(name || "").trim().toLowerCase().replace(/^[\d\s./-]+/, "").replace(/\s+/g, " ");
-    }
-
-    function renderShoppingList(){
-      const root = document.getElementById("shopping-list");
-      if(!root) return;
-      const counts = {};
-      assignedMeals.forEach(meal => {
-        (meal.ingredients || []).forEach(raw => {
-          const key = normalizeIngredientName(raw);
-          if(!key) return;
-          if(!counts[key]) counts[key] = {name: raw, count: 0};
-          counts[key].count += 1;
-        });
-      });
-      const items = Object.values(counts).sort((a,b) => b.count - a.count || a.name.localeCompare(b.name));
-      if(!items.length){
-        root.innerHTML = '<div class="tiny muted">No assigned meal ingredients yet.</div>';
-        return;
-      }
-      root.innerHTML = items.map(item => `
-        <div class="meal-slot">
-          <div style="flex:1">
-            <div class="meal-slot-title">${escapeHtml(item.name)}</div>
-            <div class="meal-slot-meta">Appears in ${item.count} planned meal${item.count===1?'':'s'}</div>
-          </div>
-        </div>
-      `).join("");
-    }
-
-    async function estimateMacrosFromFoodName(){
-      const name = document.getElementById("food-name").value.trim();
-      if(!name) return alert("Enter a food name first.");
-      const status = document.getElementById("food-ai-status");
-      if(status) status.textContent = "Estimating macros from food name…";
-
-      const system = `You estimate food macros for a nutrition tracker.
-Return ONLY valid JSON.
-Schema:
-{"name":"string","servings":1,"macros":{"calories":0,"carbs":0,"protein":0,"fat":0}}
-Rules:
-- Estimate a typical single serving unless the user gave a serving size in the food name.
-- Use reasonable consumer-facing estimates.
-- Return JSON only.`;
-
-      try{
-        const raw = await callOpenAI([
-          { role: "system", content: system },
-          { role: "user", content: name }
-        ], 300, 0.2, 45000);
-
-        const parsed = extractFirstJsonObject(raw);
-        if(!parsed?.macros) throw new Error("Invalid macro estimate");
-        document.getElementById("food-calories").value = Math.round(parsed?.macros?.calories || 0);
-        document.getElementById("food-carbs").value = Math.round(parsed?.macros?.carbs || 0);
-        document.getElementById("food-protein").value = Math.round(parsed?.macros?.protein || 0);
-        document.getElementById("food-fat").value = Math.round(parsed?.macros?.fat || 0);
-        if(parsed?.servings) document.getElementById("food-servings").value = Number(parsed.servings) || 1;
-        if(status) status.textContent = "Estimated macros added to the form.";
-      } catch(e){
-        if(status) status.textContent = "Macro estimate failed.";
-        alert("Macro estimate failed: " + (e.message || e));
-      }
-    }
-
-    function fileToDataUrl(file){
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-    }
-
-    async function analyzeFoodPhoto(){
-      const input = document.getElementById("food-photo-input");
-      const file = input?.files?.[0];
-      const status = document.getElementById("food-ai-status");
-      if(!file) return alert("Choose a photo first.");
-      if(status) status.textContent = "Analyzing food photo…";
-
-      try{
-        const dataUrl = await fileToDataUrl(file);
-        const system = `You analyze food photos for a nutrition tracker.
-Return ONLY valid JSON.
-Schema:
-{"name":"string","servings":1,"macros":{"calories":0,"carbs":0,"protein":0,"fat":0},"confidence":"high"|"medium"|"low","notes":"string"}
-Rules:
-- If uncertain, still provide the best estimate and set confidence lower.
-- Return JSON only.`;
-
-        const messages = [
-          { role: "system", content: system },
-          { role: "user", content: [
-            { type: "text", text: "Identify the food and estimate a typical serving's calories, carbs, protein, and fat. If it looks packaged, use the packaging clues if visible." },
-            { type: "image_url", image_url: { url: dataUrl } }
-          ]}
-        ];
-
-        const raw = await callOpenAI(messages, 500, 0.2, 90000);
-        const parsed = extractFirstJsonObject(raw);
-        if(!parsed?.macros) throw new Error("Invalid food photo analysis");
-
-        if(parsed?.name) document.getElementById("food-name").value = parsed.name;
-        document.getElementById("food-calories").value = Math.round(parsed?.macros?.calories || 0);
-        document.getElementById("food-carbs").value = Math.round(parsed?.macros?.carbs || 0);
-        document.getElementById("food-protein").value = Math.round(parsed?.macros?.protein || 0);
-        document.getElementById("food-fat").value = Math.round(parsed?.macros?.fat || 0);
-        if(parsed?.servings) document.getElementById("food-servings").value = Number(parsed.servings) || 1;
-
-        if(status) status.textContent = `Photo analyzed (${parsed.confidence || "unknown"} confidence). Review values before logging.`;
-      } catch(e){
-        if(status) status.textContent = "Photo analysis failed.";
-        alert("Photo analysis failed. Your backend may not yet support image inputs on /api/ai. Error: " + (e.message || e));
-      }
-    }
-
-    function renderMemorySections(){
-      const insightsRoot = document.getElementById("coach-insights-list");
-      const historyRoot = document.getElementById("coach-history-list");
-
-      if(insightsRoot){
-        if(!coachInsights.length){
-          insightsRoot.innerHTML = `<div class="tiny muted">No saved insights yet.</div>`;
-        } else {
-          insightsRoot.innerHTML = coachInsights.map(i => `
-            <div class="insight-item">
-              <div class="tiny">${new Date(i.createdAt).toLocaleString()}</div>
-              <div style="margin-top:4px">${escapeHtml(i.text)}</div>
-              <div style="margin-top:8px">
-                <button class="btn danger tiny" onclick="deleteInsight('${i.id}')">Delete</button>
-              </div>
-            </div>
-          `).join("");
-        }
-      }
-
-      if(historyRoot){
-        if(!coachHistory.length){
-          historyRoot.innerHTML = `<div class="tiny muted">No coach history yet.</div>`;
-        } else {
-          historyRoot.innerHTML = coachHistory.slice().reverse().slice(0, 12).map(h => `
-            <div class="insight-item">
-              <div class="tiny">${new Date(h.timestamp).toLocaleString()} • intent: ${escapeHtml(h.intent || "")}</div>
-              <div style="margin-top:6px"><b>You:</b> ${escapeHtml(h.userMessage || "")}</div>
-              <div style="margin-top:4px"><b>Coach:</b> ${escapeHtml(h.assistantReply || "")}</div>
-            </div>
-          `).join("");
-        }
-      }
-    }
-
-    function deleteInsight(id){
-      coachInsights = coachInsights.filter(i => i.id !== id);
-      saveCloud();
-      renderMemorySections();
-    }
-
-    function showAuth(){ document.getElementById("auth-modal").classList.add("show"); }
-    function closeAuth(){ document.getElementById("auth-modal").classList.remove("show"); }
-
-    async function signup(){
-      if(!firebaseInitialized) return alert("Firebase not configured");
-      const email = document.getElementById("login-email").value.trim();
-      const pass = document.getElementById("login-password").value;
-      if(!email || !pass) return alert("Enter email and password");
-      try {
-        await firebase.auth().createUserWithEmailAndPassword(email, pass);
-        closeAuth();
-      } catch(e){
-        alert("Signup error: " + e.message);
-      }
-    }
-
-    async function login(){
-      if(!firebaseInitialized) return alert("Firebase not configured");
-      const email = document.getElementById("login-email").value.trim();
-      const pass = document.getElementById("login-password").value;
-      if(!email || !pass) return alert("Enter email and password");
-      try {
-        await firebase.auth().signInWithEmailAndPassword(email, pass);
-        closeAuth();
-      } catch(e){
-        alert("Login error: " + e.message);
-      }
-    }
-
-    function updateAllDisplays(){
-      updateDashboard();
-      updateFoodLogDisplay();
-      renderShoppingList();
-    }
-
-    window.onload = function(){
-      loadLocal();
-      initDate();
-      syncProfileUI();
-      updateAllDisplays();
-      renderMemorySections();
-
-      if(firebaseInitialized){
-        firebase.auth().onAuthStateChanged(async (u) => {
-          if(u){
-            currentUser = u;
-            document.getElementById("login-button").style.display = "none";
-            await loadCloud();
-          } else {
-            currentUser = null;
-            document.getElementById("login-button").style.display = "inline-block";
-            loadLocal();
-            syncProfileUI();
-            updateAllDisplays();
-            renderMemorySections();
-          }
-        });
-      }
-    };
-
-    window.addEventListener("beforeunload", saveLocal);
-  </script>
+<script>
+const BACKEND_URL = "https://foodtracker-backend.onrender.com";
+const firebaseConfig = {apiKey:"AIzaSyCVwscL-mtp9RBY1tUWxZKRCsVzYmcqUOk",authDomain:"food-tracker-ca7bf.firebaseapp.com",databaseURL:"https://food-tracker-ca7bf-default-rtdb.firebaseio.com",projectId:"food-tracker-ca7bf",storageBucket:"food-tracker-ca7bf.firebasestorage.app",messagingSenderId:"251471207675",appId:"1:251471207675:web:3bdde1caaba4deaa40245e",measurementId:"G-2Z0ZT9XZJ6"};
+let firebaseInitialized=false,currentUser=null,database=null; try{firebase.initializeApp(firebaseConfig);database=firebase.database();firebaseInitialized=true;}catch(e){console.warn("Firebase not available",e);}
+let userProfile={name:"",goals:{calories:2000,carbs:250,protein:150,fat:67},coachMemoryNotes:""}, foodLog=[], assignedMeals=[], coachHistory=[], coachInsights=[], savedFoods=[], savedRecipes=[], lastCoachAction=null, lastPlannerAction=null, lastParsedSchedule=null, currentViewDate=new Date().toISOString().split("T")[0], editingMealId=null;
+function uid(prefix="id"){return prefix+"_"+Math.random().toString(36).slice(2,9);} function toISODate(d){return d.toISOString().split("T")[0];} function addDays(iso,n){const d=new Date(iso+"T00:00:00"); d.setDate(d.getDate()+n); return toISODate(d);} function escapeHtml(text=""){return String(text||"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));} function weekdayName(iso){const d=new Date(iso+"T00:00:00"); return ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getDay()];}
+function extractFirstJsonObject(text){if(!text) return null; try{return JSON.parse(text);}catch(e){} const first=text.indexOf("{"), last=text.lastIndexOf("}"); if(first===-1||last===-1||last<=first) return null; let sub=text.slice(first,last+1).replace(/,\s*([}\]])/g,"$1"); try{return JSON.parse(sub);}catch(e){} return null;}
+function saveLocal(){localStorage.setItem("ft_profile_v5",JSON.stringify(userProfile));localStorage.setItem("ft_foodLog_v5",JSON.stringify(foodLog));localStorage.setItem("ft_assignedMeals_v5",JSON.stringify(assignedMeals));localStorage.setItem("ft_coachHistory_v5",JSON.stringify(coachHistory));localStorage.setItem("ft_coachInsights_v5",JSON.stringify(coachInsights));localStorage.setItem("ft_savedFoods_v5",JSON.stringify(savedFoods));localStorage.setItem("ft_savedRecipes_v5",JSON.stringify(savedRecipes));}
+function loadLocal(){try{const p=JSON.parse(localStorage.getItem("ft_profile_v5")); if(p) userProfile=p; const fl=JSON.parse(localStorage.getItem("ft_foodLog_v5")); if(Array.isArray(fl)) foodLog=fl; const am=JSON.parse(localStorage.getItem("ft_assignedMeals_v5")); if(Array.isArray(am)) assignedMeals=am; const ch=JSON.parse(localStorage.getItem("ft_coachHistory_v5")); if(Array.isArray(ch)) coachHistory=ch; const ci=JSON.parse(localStorage.getItem("ft_coachInsights_v5")); if(Array.isArray(ci)) coachInsights=ci; const sf=JSON.parse(localStorage.getItem("ft_savedFoods_v5")); if(Array.isArray(sf)) savedFoods=sf; const sr=JSON.parse(localStorage.getItem("ft_savedRecipes_v5")); if(Array.isArray(sr)) savedRecipes=sr;}catch(e){}}
+async function saveCloud(){saveLocal(); if(!firebaseInitialized||!currentUser) return; await database.ref("users/"+currentUser.uid).update({userProfile,foodLog,assignedMeals,coachHistory,coachInsights,savedFoods,savedRecipes,updatedAt:new Date().toISOString()});}
+async function loadCloud(){if(!firebaseInitialized||!currentUser) return; const snap=await database.ref("users/"+currentUser.uid).once("value"); const data=snap.val(); if(!data) return; if(data.userProfile) userProfile=data.userProfile; if(Array.isArray(data.foodLog)) foodLog=data.foodLog; if(Array.isArray(data.assignedMeals)) assignedMeals=data.assignedMeals; if(Array.isArray(data.coachHistory)) coachHistory=data.coachHistory; if(Array.isArray(data.coachInsights)) coachInsights=data.coachInsights; if(Array.isArray(data.savedFoods)) savedFoods=data.savedFoods; if(Array.isArray(data.savedRecipes)) savedRecipes=data.savedRecipes; saveLocal(); syncProfileUI(); updateAllDisplays(); renderMemorySections(); renderSavedLists();}
+function showSection(id){document.querySelectorAll("main > section").forEach(s=>s.style.display="none"); document.getElementById(id).style.display="block"; document.querySelectorAll(".nav-btn").forEach(b=>b.classList.remove("active")); document.querySelectorAll(".nav-btn").forEach(b=>{const t=b.textContent.toLowerCase(); if(id==="dashboard"&&t.includes("dashboard")) b.classList.add("active"); if(id==="profile"&&t.includes("profile")) b.classList.add("active"); if(id==="coach"&&t.includes("coach")) b.classList.add("active"); if(id==="planner"&&t.includes("plan")) b.classList.add("active"); if(id==="foodlog"&&t.includes("food")) b.classList.add("active"); if(id==="memory"&&t.includes("memory")) b.classList.add("active");}); if(id==="dashboard") updateDashboard(); if(id==="foodlog"){updateFoodLogDisplay(); renderSavedLists();} if(id==="profile") syncProfileUI(); if(id==="memory") renderMemorySections();}
+function syncProfileUI(){document.getElementById("user-name").value=userProfile.name||""; document.getElementById("daily-calories").value=userProfile.goals?.calories??2000; document.getElementById("carbs-goal-input").value=userProfile.goals?.carbs??250; document.getElementById("protein-goal-input").value=userProfile.goals?.protein??150; document.getElementById("fat-goal-input").value=userProfile.goals?.fat??67; document.getElementById("coach-memory-notes").value=userProfile.coachMemoryNotes||"";}
+function saveProfile(){userProfile.name=document.getElementById("user-name").value.trim(); userProfile.goals={calories:Number(document.getElementById("daily-calories").value)||2000, carbs:Number(document.getElementById("carbs-goal-input").value)||250, protein:Number(document.getElementById("protein-goal-input").value)||150, fat:Number(document.getElementById("fat-goal-input").value)||67}; userProfile.coachMemoryNotes=document.getElementById("coach-memory-notes").value.trim(); saveCloud(); updateAllDisplays(); alert("Profile saved.");}
+function initDate(){document.getElementById("view-date").value=currentViewDate; const p=document.getElementById("plan-start-date"); if(p) p.value=addDays(currentViewDate,1);} function changeViewDate(delta){const d=new Date(currentViewDate+"T00:00:00"); d.setDate(d.getDate()+delta); currentViewDate=toISODate(d); document.getElementById("view-date").value=currentViewDate; updateAllDisplays();} function onDateChange(){currentViewDate=document.getElementById("view-date").value; updateAllDisplays();} function goToToday(){currentViewDate=toISODate(new Date()); document.getElementById("view-date").value=currentViewDate; updateAllDisplays();}
+function mealTotals(meal){const s=Number(meal.servings||1)||1,m=meal.macrosPerServing||{}; return {calories:(Number(m.calories)||0)*s, carbs:(Number(m.carbs)||0)*s, protein:(Number(m.protein)||0)*s, fat:(Number(m.fat)||0)*s};}
+function foodTotals(food){const s=Number(food.servings||1)||1,m=food.macros||{}; return {calories:(Number(m.calories)||0)*s, carbs:(Number(m.carbs)||0)*s, protein:(Number(m.protein)||0)*s, fat:(Number(m.fat)||0)*s};}
+function computeDailyTotals(date){const totals={calories:0,carbs:0,protein:0,fat:0}; foodLog.filter(f=>f.date===date).forEach(f=>{const t=foodTotals(f); totals.calories+=t.calories; totals.carbs+=t.carbs; totals.protein+=t.protein; totals.fat+=t.fat;}); assignedMeals.filter(m=>m.date===date&&m.status==="eaten").forEach(m=>{const t=mealTotals(m); totals.calories+=t.calories; totals.carbs+=t.carbs; totals.protein+=t.protein; totals.fat+=t.fat;}); return totals;}
+function updateDashboard(){const totals=computeDailyTotals(currentViewDate), goals=userProfile.goals||{calories:2000,carbs:250,protein:150,fat:67}; document.getElementById("calories-text").textContent=`${Math.round(totals.calories)} / ${goals.calories} cal`; const pct=Math.min(100,Math.round((totals.calories/(goals.calories||2000))*100)); const fill=document.getElementById("calories-progress"); fill.style.width=pct+"%"; fill.textContent=pct+"%"; document.getElementById("carbs-actual").textContent=Math.round(totals.carbs); document.getElementById("protein-actual").textContent=Math.round(totals.protein); document.getElementById("fat-actual").textContent=Math.round(totals.fat); document.getElementById("carbs-goal").textContent=`${goals.carbs}g`; document.getElementById("protein-goal").textContent=`${goals.protein}g`; document.getElementById("fat-goal").textContent=`${goals.fat}g`; renderPlannedMeals(); renderDashboardFoodLog();}
+function renderPlannedMeals(){const items=assignedMeals.filter(m=>m.date===currentViewDate).sort((a,b)=>(a.slot||"").localeCompare(b.slot||"")); const root=document.getElementById("planned-meals-list"); if(!items.length){root.innerHTML=`<div class="tiny muted">No meals planned for this day.</div>`; return;} root.innerHTML=items.map(m=>{const t=mealTotals(m); const pill=m.status==="eaten"?`<span class="pill">Eaten</span>`:m.status==="skipped"?`<span class="pill red">Skipped</span>`:`<span class="pill blue">Planned</span>`; return `<div class="meal-slot"><div style="flex:1;min-width:220px"><div class="meal-slot-title">${escapeHtml((m.slot||"").toUpperCase())}: ${escapeHtml(m.name)} ${pill}</div><div class="meal-slot-meta">${escapeHtml(m.description||"")}</div><div class="meal-slot-meta">Servings: <b>${Number(m.servings||1)}</b> • ${Math.round(t.calories)} kcal • ${Math.round(t.carbs)}c • ${Math.round(t.protein)}p • ${Math.round(t.fat)}f</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn tiny" onclick="setMealStatus('${m.id}','eaten')">Eat</button><button class="btn secondary tiny" onclick="setMealStatus('${m.id}','skipped')">Skip</button><button class="btn secondary tiny" onclick="openEditMeal('${m.id}')">Edit</button><button class="btn danger tiny" onclick="deleteMeal('${m.id}')">Delete</button></div></div>`;}).join("");}
+function setMealStatus(id,status){const meal=assignedMeals.find(m=>m.id===id); if(!meal) return; meal.status=status; saveCloud(); updateAllDisplays();}
+function deleteMeal(id){if(!confirm("Delete this planned meal?")) return; assignedMeals=assignedMeals.filter(m=>m.id!==id); saveCloud(); updateAllDisplays();}
+function openEditMeal(id){const meal=assignedMeals.find(m=>m.id===id); if(!meal) return; editingMealId=id; document.getElementById("edit-meal-title").textContent=`${meal.date} • ${(meal.slot||"").toUpperCase()} • ${meal.name}`; document.getElementById("edit-meal-servings").value=Number(meal.servings||1); document.getElementById("edit-meal-modal").classList.add("show");}
+function closeEditMeal(){editingMealId=null; document.getElementById("edit-meal-modal").classList.remove("show");}
+function saveMealEdit(){const meal=assignedMeals.find(m=>m.id===editingMealId); if(!meal) return closeEditMeal(); const servings=Number(document.getElementById("edit-meal-servings").value); if(!servings||servings<=0) return alert("Servings must be greater than 0"); meal.servings=servings; saveCloud(); closeEditMeal(); updateAllDisplays();}
+function renderDashboardFoodLog(){const items=foodLog.filter(f=>f.date===currentViewDate), root=document.getElementById("today-food-list"); if(!items.length){root.innerHTML=`<div class="tiny muted">No food logged yet.</div>`; return;} root.innerHTML=items.map(f=>{const t=foodTotals(f); return `<div class="meal-slot"><div style="flex:1"><div class="meal-slot-title">${escapeHtml(f.name)}</div><div class="meal-slot-meta">Servings: <b>${Number(f.servings||1)}</b> • ${Math.round(t.calories)} kcal</div></div><div><button class="btn danger tiny" onclick="deleteFood('${f.id}')">Delete</button></div></div>`;}).join("");}
+function addFood(){const name=document.getElementById("food-name").value.trim(); if(!name) return alert("Enter a food name"); const servings=Number(document.getElementById("food-servings").value)||1, calories=Number(document.getElementById("food-calories").value)||0, carbs=Number(document.getElementById("food-carbs").value)||0, protein=Number(document.getElementById("food-protein").value)||0, fat=Number(document.getElementById("food-fat").value)||0; foodLog.unshift({id:uid("food"),date:currentViewDate,name,servings,macros:{calories,carbs,protein,fat}}); saveCloud(); updateAllDisplays();}
+function deleteFood(id){foodLog=foodLog.filter(f=>f.id!==id); saveCloud(); updateAllDisplays();}
+function updateFoodLogDisplay(){const items=foodLog.filter(f=>f.date===currentViewDate), root=document.getElementById("food-log-list"); if(!items.length){root.innerHTML=`<div class="tiny muted">No entries for this date.</div>`; return;} root.innerHTML=items.map(f=>{const t=foodTotals(f); return `<div class="meal-slot"><div style="flex:1"><div class="meal-slot-title">${escapeHtml(f.name)}</div><div class="meal-slot-meta">Servings: <b>${Number(f.servings||1)}</b> • ${Math.round(t.calories)} kcal • ${Math.round(t.carbs)}c • ${Math.round(t.protein)}p • ${Math.round(t.fat)}f</div></div><div><button class="btn danger tiny" onclick="deleteFood('${f.id}')">Delete</button></div></div>`;}).join("");}
+function getCurrentFoodForm(){return {name:document.getElementById("food-name").value.trim(), servings:Number(document.getElementById("food-servings").value)||1, macros:{calories:Number(document.getElementById("food-calories").value)||0, carbs:Number(document.getElementById("food-carbs").value)||0, protein:Number(document.getElementById("food-protein").value)||0, fat:Number(document.getElementById("food-fat").value)||0}};}
+function saveCurrentItem(type){const item=getCurrentFoodForm(); if(!item.name) return alert("Enter a food name first."); const payload={id:uid(type),name:item.name,servings:item.servings,macros:item.macros,createdAt:new Date().toISOString()}; if(type==="food"){savedFoods.unshift(payload); if(savedFoods.length>100) savedFoods=savedFoods.slice(0,100);} else {savedRecipes.unshift(payload); if(savedRecipes.length>100) savedRecipes=savedRecipes.slice(0,100);} saveCloud(); renderSavedLists(); alert(type==="food"?"Saved food.":"Saved recipe.");}
+function useSavedItem(type,id){const arr=type==="food"?savedFoods:savedRecipes; const item=arr.find(x=>x.id===id); if(!item) return; document.getElementById("food-name").value=item.name||""; document.getElementById("food-servings").value=Number(item.servings||1); document.getElementById("food-calories").value=Number(item.macros?.calories||0); document.getElementById("food-carbs").value=Number(item.macros?.carbs||0); document.getElementById("food-protein").value=Number(item.macros?.protein||0); document.getElementById("food-fat").value=Number(item.macros?.fat||0);}
+function logSavedItem(type,id){const arr=type==="food"?savedFoods:savedRecipes; const item=arr.find(x=>x.id===id); if(!item) return; foodLog.unshift({id:uid("food"),date:currentViewDate,name:item.name,servings:Number(item.servings||1),macros:{calories:Number(item.macros?.calories||0),carbs:Number(item.macros?.carbs||0),protein:Number(item.macros?.protein||0),fat:Number(item.macros?.fat||0)}}); saveCloud(); updateAllDisplays();}
+function deleteSavedItem(type,id){if(type==="food") savedFoods=savedFoods.filter(x=>x.id!==id); else savedRecipes=savedRecipes.filter(x=>x.id!==id); saveCloud(); renderSavedLists();}
+function renderSavedLists(){const foodsRoot=document.getElementById("saved-foods-list"), recRoot=document.getElementById("saved-recipes-list"); if(foodsRoot){foodsRoot.innerHTML=!savedFoods.length?`<div class="tiny muted">No saved foods yet.</div>`:savedFoods.map(x=>`<div class="insight-item"><div style="font-weight:800">${escapeHtml(x.name)}</div><div class="tiny">${Math.round(x.macros?.calories||0)} kcal • ${Math.round(x.macros?.carbs||0)}c • ${Math.round(x.macros?.protein||0)}p • ${Math.round(x.macros?.fat||0)}f</div><div class="row" style="margin-top:8px"><button class="btn tiny" onclick="logSavedItem('food','${x.id}')">Log</button><button class="btn secondary tiny" onclick="useSavedItem('food','${x.id}')">Load</button><button class="btn danger tiny" onclick="deleteSavedItem('food','${x.id}')">Delete</button></div></div>`).join("");} if(recRoot){recRoot.innerHTML=!savedRecipes.length?`<div class="tiny muted">No saved recipes yet.</div>`:savedRecipes.map(x=>`<div class="insight-item"><div style="font-weight:800">${escapeHtml(x.name)}</div><div class="tiny">${Math.round(x.macros?.calories||0)} kcal • ${Math.round(x.macros?.carbs||0)}c • ${Math.round(x.macros?.protein||0)}p • ${Math.round(x.macros?.fat||0)}f</div><div class="row" style="margin-top:8px"><button class="btn tiny" onclick="logSavedItem('recipe','${x.id}')">Log</button><button class="btn secondary tiny" onclick="useSavedItem('recipe','${x.id}')">Load</button><button class="btn danger tiny" onclick="deleteSavedItem('recipe','${x.id}')">Delete</button></div></div>`).join("");}}
+function getFoodsForDate(date){return foodLog.filter(f=>f.date===date);} function repeatYesterdayFoods(){const yesterday=addDays(currentViewDate,-1), yFoods=getFoodsForDate(yesterday); if(!yFoods.length) return alert("No foods found for yesterday."); yFoods.forEach(f=>foodLog.unshift({...JSON.parse(JSON.stringify(f)),id:uid("food"),date:currentViewDate})); saveCloud(); updateAllDisplays(); alert("Copied yesterday’s foods to today.");}
+function getRecentFoodHistory(days=3){const arr=[]; for(let i=0;i<days;i++){const date=addDays(currentViewDate,-i); const foods=foodLog.filter(f=>f.date===date).map(f=>({name:f.name,servings:f.servings,macros:f.macros})); const meals=assignedMeals.filter(m=>m.date===date).map(m=>({slot:m.slot,name:m.name,servings:m.servings,status:m.status})); if(foods.length||meals.length) arr.push({date,foods,meals});} return arr;}
+function getYesterdaySummary(){const yesterday=addDays(currentViewDate,-1); return {date:yesterday,foods:getFoodsForDate(yesterday),meals:assignedMeals.filter(m=>m.date===yesterday)};}
+function getRecentCoachHistory(limit=3){return coachHistory.slice(-limit);} function getRecentCoachInsights(limit=3){return coachInsights.slice(-limit);} function coachQuickPrompt(text){document.getElementById("coach-chat-input").value=text; sendCoachMessage();}
+function appendCoachMessage(text,role){const container=document.getElementById("coach-chat-container"), div=document.createElement("div"); div.className="chat-message "+(role==="user"?"user":"assistant"); div.innerHTML=role==="user"?`<div style="font-weight:800">You</div><div style="margin-top:6px">${escapeHtml(text)}</div>`:`<div style="font-weight:800">AI Nutrition Coach</div><div style="margin-top:6px">${text}</div>`; container.appendChild(div); container.scrollTop=container.scrollHeight;}
+async function callOpenAI(messages=[], maxTokens=1200, temperature=0.3, timeoutMs=90000){const controller=new AbortController(), t=setTimeout(()=>controller.abort(),timeoutMs); try{const res=await fetch(`${BACKEND_URL}/api/ai`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages,max_tokens:maxTokens,temperature}),signal:controller.signal}); if(!res.ok){const txt=await res.text(); throw new Error(`AI backend error: ${res.status} ${txt}`);} const data=await res.json(); return data?.choices?.[0]?.message?.content||"";}catch(e){if(e.name==="AbortError") throw new Error(`Request timed out after ${Math.round(timeoutMs/1000)} seconds.`); throw e;} finally{clearTimeout(t);}}
+async function sendCoachMessage(){const input=document.getElementById("coach-chat-input"), text=input.value.trim(); if(!text) return; input.value=""; appendCoachMessage(text,"user"); const btn=document.getElementById("coach-send-btn"); btn.disabled=true; btn.textContent="Thinking…"; const system=`You are an AI Nutrition Coach for a food-tracking app. Return ONLY valid JSON. Schema: {"reply":"string","intent":"advice"|"log_food"|"save_preference","foods":[{"name":"string","servings":1,"macros":{"calories":0,"carbs":0,"protein":0,"fat":0}}],"preference":{"note":"string"}} Rules: This coach is NOT for weekly plan generation. If the user asks for a multi-day or weekly plan, return intent "advice" and tell them to use the Plan Generator. Always include "reply" and "intent". If the user asks to repeat yesterday's breakfast/meal/foods, use the provided yesterday context. If the user says they ate foods, parse them into "foods" and use intent "log_food". If the user asks for recommendations only, use "advice". If the user says to remember a preference or useful rule, use "save_preference". For sports/performance days, include timing-aware fueling advice. Keep reply concise.`; const userPayload={userMessage:text,currentDate:currentViewDate,profile:userProfile,todayFoods:foodLog.filter(f=>f.date===currentViewDate),todayPlannedMeals:assignedMeals.filter(m=>m.date===currentViewDate),yesterdaySummary:getYesterdaySummary(),recentFoodHistory:getRecentFoodHistory(3),recentCoachHistory:getRecentCoachHistory(3),recentCoachInsights:getRecentCoachInsights(3),savedFoods:savedFoods.slice(0,10),savedRecipes:savedRecipes.slice(0,10)}; try{const raw=await callOpenAI([{role:"system",content:system},{role:"user",content:JSON.stringify(userPayload)}],900,0.3,60000); const parsed=extractFirstJsonObject(raw); if(!parsed||!parsed.reply||!parsed.intent) throw new Error("Coach returned invalid format"); appendCoachMessage(escapeHtml(parsed.reply).replace(/\n/g,"<br>"),"assistant"); lastCoachAction=parsed; coachHistory.push({timestamp:new Date().toISOString(),userMessage:text,assistantReply:parsed.reply,intent:parsed.intent}); if(coachHistory.length>40) coachHistory=coachHistory.slice(-40); saveCloud(); renderCoachActionArea(parsed); renderMemorySections();}catch(e){appendCoachMessage(`Sorry — I couldn't complete that request. ${escapeHtml(e.message||String(e))}`,"assistant");} finally{btn.disabled=false; btn.textContent="Send";}}
+function renderCoachActionArea(action){const root=document.getElementById("coach-action-area"); if(!action){root.innerHTML=""; return;} if(action.intent==="advice"){root.innerHTML=`<div class="coach-action-box"><div class="tiny">Advice only. Use the separate <b>Plan Generator</b> for multi-day structured meal plans.</div><div style="margin-top:10px"><button class="btn" onclick="saveLastReplyAsInsight()">Save this reply as insight</button><button class="btn secondary" onclick="showSection('planner')">Open Plan Generator</button></div></div>`; return;} if(action.intent==="save_preference" && action.preference?.note){root.innerHTML=`<div class="coach-action-box"><div style="font-weight:900">Suggested memory to save</div><div class="tiny" style="margin-top:6px">${escapeHtml(action.preference.note)}</div><div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="confirmSaveCoachPreference()">Save to profile memory</button><button class="btn secondary" onclick="saveLastReplyAsInsight()">Save whole reply as insight</button></div></div>`; return;} if(action.intent==="log_food"&&Array.isArray(action.foods)&&action.foods.length){root.innerHTML=`<div class="coach-action-box"><div style="font-weight:900">Ready to log these foods for ${escapeHtml(currentViewDate)}</div><div style="margin-top:8px">${action.foods.map(f=>`<div class="meal-slot"><div style="flex:1"><div class="meal-slot-title">${escapeHtml(f.name)}</div><div class="meal-slot-meta">${Number(f.servings||1)} serving(s) • ${Math.round(f?.macros?.calories||0)} kcal • ${Math.round(f?.macros?.carbs||0)}c • ${Math.round(f?.macros?.protein||0)}p • ${Math.round(f?.macros?.fat||0)}f</div></div></div>`).join("")}</div><div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="confirmLogFoodsFromCoach()">Log these foods</button><button class="btn secondary" onclick="saveLastReplyAsInsight()">Save this reply as insight</button></div></div>`;}}
+function fillHockeyTemplate(){document.getElementById("plan-schedule").value="Hockey Saturday 9pm, Tuesday 7:25pm, Thursday 8pm. Medium workout on the other days."; document.getElementById("plan-preferences").value="High protein, simple meals, light digestion before hockey, include pregame and recovery support.";}
+function renderParsedSchedule(days){const root=document.getElementById("planner-parse-preview"); if(!days?.length){root.innerHTML=""; return;} root.innerHTML=`<div class="card"><h3 style="margin:0 0 8px 0">Parsed Schedule Preview</h3><div class="tiny" style="margin-bottom:8px">Check that activity and times look correct before reviewing the meals.</div>${days.map(d=>`<div class="meal-slot"><div style="flex:1"><div class="meal-slot-title">${escapeHtml(d.date)} <span class="pill orange">${escapeHtml(weekdayName(d.date))}</span></div><div class="meal-slot-meta">Activity: <b>${escapeHtml(d.activity||"rest")}</b>${d.time?` • Time: <b>${escapeHtml(d.time)}</b>`:""}</div>${d.notes?`<div class="meal-slot-meta">${escapeHtml(d.notes)}</div>`:""}</div></div>`).join("")}</div>`;}
+async function parseScheduleStep(startDate,days,scheduleText){const system=`You parse workout schedules for a nutrition planner. Return ONLY valid minified JSON. Schema: {"days":[{"date":"YYYY-MM-DD","activity":"hockey"|"workout"|"rest","time":"string","notes":"string"}]} Rules: Use start date and number of days provided. Create exactly the requested number of day objects. If user names certain days and times, map them to the correct dates in the requested range. If user says workout on the other days, fill remaining days with workout. If a day has no explicit activity, use rest. time can be empty string if none. notes should be short.`; const payload={startDate,daysRequested:days,scheduleText}; const raw=await callOpenAI([{role:"system",content:system},{role:"user",content:JSON.stringify(payload)}],650,0.1,50000); const parsed=extractFirstJsonObject(raw); if(!parsed?.days?.length || parsed.days.length!==days) throw new Error("Schedule parse failed"); return parsed.days;}
+async function generateStructuredPlan(){const startDate=document.getElementById("plan-start-date").value, days=Math.max(1,Math.min(14,Number(document.getElementById("plan-days").value)||6)), schedule=document.getElementById("plan-schedule").value.trim(), preferences=document.getElementById("plan-preferences").value.trim(), status=document.getElementById("planner-status"), btn=document.getElementById("planner-generate-btn"); if(!startDate) return alert("Choose a start date."); status.textContent="Step 1 of 2: parsing schedule…"; btn.disabled=true; btn.textContent="Generating…"; try{lastParsedSchedule=await parseScheduleStep(startDate,days,schedule); renderParsedSchedule(lastParsedSchedule); status.textContent="Step 2 of 2: generating meals…"; const system=`You are a structured meal planner for a nutrition app. Return ONLY valid minified JSON. No markdown. No explanations before or after the JSON. Schema: {"reply":"string","plan":{"days":[{"date":"YYYY-MM-DD","targets":{"calories":0,"carbs":0,"protein":0,"fat":0},"meals":[{"slot":"breakfast"|"lunch"|"dinner"|"snack","name":"string","description":"string","servings":1,"macros":{"calories":0,"carbs":0,"protein":0,"fat":0},"ingredients":["string"]}]}]}} Rules: Generate one day entry per parsed schedule day. For hockey days, include breakfast, lunch, dinner, and usually a pregame or recovery snack if helpful. For workout days, include balanced meals and optionally one snack. For rest days, keep calories aligned to goals and avoid unnecessary extra snacks. Make daily totals feel realistic and aligned to user goals. Keep meal descriptions short (max 12 words). Keep ingredients simple and grocery-friendly. Meals must be assigned to the correct dates from the parsed schedule. Return clean JSON only.`; const userPayload={profile:userProfile,parsedSchedule:lastParsedSchedule,preferences,savedFoods:savedFoods.slice(0,10),savedRecipes:savedRecipes.slice(0,10),memoryNotes:userProfile.coachMemoryNotes||""}; const raw=await callOpenAI([{role:"system",content:system},{role:"user",content:JSON.stringify(userPayload)}],1600,0.2,120000); const parsed=extractFirstJsonObject(raw); if(!parsed?.plan?.days?.length) throw new Error("Planner returned invalid format"); lastPlannerAction=parsed; status.textContent=parsed.reply||"Plan generated."; renderPlannerResults(parsed.plan.days);}catch(e){status.textContent="Failed: "+(e.message||String(e)); document.getElementById("planner-results").innerHTML=""; alert("Plan generation failed: "+(e.message||e));} finally{btn.disabled=false; btn.textContent="Generate Plan";}}
+function renderPlanHtml(days,prefix){return days.map((d,dayIdx)=>`<div class="meal-day"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap"><div><div style="font-weight:900">${escapeHtml(d.date)} <span class="pill">${escapeHtml(weekdayName(d.date))}</span></div><div class="tiny">Targets: ${Math.round(d?.targets?.calories||0)} kcal • ${Math.round(d?.targets?.carbs||0)}c • ${Math.round(d?.targets?.protein||0)}p • ${Math.round(d?.targets?.fat||0)}f</div></div></div>${(d.meals||[]).map((m,mealIdx)=>{const cbId=`${prefix}_plan_${dayIdx}_${mealIdx}`; return `<div class="meal-slot"><div style="flex:1;min-width:220px"><div class="meal-slot-title">${escapeHtml((m.slot||"").toUpperCase())}: ${escapeHtml(m.name)}</div><div class="meal-slot-meta">${escapeHtml(m.description||"")}</div><div class="meal-slot-meta">${Math.round(m?.macros?.calories||0)} kcal • ${Math.round(m?.macros?.carbs||0)}c • ${Math.round(m?.macros?.protein||0)}p • ${Math.round(m?.macros?.fat||0)}f</div></div><div style="display:flex;align-items:center;gap:8px"><label class="tiny" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="${cbId}" checked> Select</label></div></div>`;}).join("")}</div>`).join("");}
+function renderPlannerResults(days){document.getElementById("planner-results").innerHTML=`<div class="coach-action-box"><div style="font-weight:900">Structured plan ready</div><div class="tiny" style="margin-top:6px">Review it below, then assign the meals you want to your dashboard.</div><div style="margin-top:10px">${renderPlanHtml(days,"planner")}</div><div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" onclick="assignPlannerMeals()">Assign selected meals</button><button class="btn secondary" onclick="toggleSelections('planner', true)">Select all</button><button class="btn secondary" onclick="toggleSelections('planner', false)">Clear all</button></div></div>`;}
+function toggleSelections(prefix,on){const source=prefix==="planner"?lastPlannerAction?.plan?.days:lastCoachAction?.plan?.days; if(!source?.length) return; source.forEach((d,dayIdx)=>(d.meals||[]).forEach((m,mealIdx)=>{const cb=document.getElementById(`${prefix}_plan_${dayIdx}_${mealIdx}`); if(cb) cb.checked=!!on;}));}
+function assignDaysToDashboard(days,prefix){let count=0; days.forEach((d,dayIdx)=>(d.meals||[]).forEach((m,mealIdx)=>{const cb=document.getElementById(`${prefix}_plan_${dayIdx}_${mealIdx}`); if(!cb||!cb.checked) return; assignedMeals.push({id:uid("meal"),date:d.date,slot:m.slot||"meal",name:m.name||"Meal",description:m.description||"",servings:Number(m.servings||1)||1,macrosPerServing:{calories:Number(m?.macros?.calories||0)||0,carbs:Number(m?.macros?.carbs||0)||0,protein:Number(m?.macros?.protein||0)||0,fat:Number(m?.macros?.fat||0)||0},ingredients:Array.isArray(m.ingredients)?m.ingredients:[],status:"planned",source:prefix}); count++;})); return count;}
+function assignPlannerMeals(){const days=lastPlannerAction?.plan?.days; if(!Array.isArray(days)||!days.length) return alert("No structured plan available."); const count=assignDaysToDashboard(days,"planner"); if(!count) return alert("No meals selected."); saveCloud(); currentViewDate=days[0].date; document.getElementById("view-date").value=currentViewDate; updateAllDisplays(); showSection("dashboard"); alert(`Assigned ${count} meals to the dashboard.`);}
+function confirmSaveCoachPreference(){const note=lastCoachAction?.preference?.note; if(!note) return; userProfile.coachMemoryNotes=[userProfile.coachMemoryNotes,note].filter(Boolean).join("\n"); saveCloud(); syncProfileUI(); alert("Saved to profile memory.");}
+function saveLastReplyAsInsight(){const reply=lastCoachAction?.reply; if(!reply) return alert("No reply available to save."); coachInsights.unshift({id:uid("insight"),text:reply,createdAt:new Date().toISOString()}); if(coachInsights.length>30) coachInsights=coachInsights.slice(0,30); saveCloud(); renderMemorySections(); alert("Saved as insight.");}
+function confirmLogFoodsFromCoach(){const foods=lastCoachAction?.foods; if(!Array.isArray(foods)||!foods.length) return; foods.forEach(f=>foodLog.unshift({id:uid("food"),date:currentViewDate,name:f.name||"Food",servings:Number(f.servings||1)||1,macros:{calories:Number(f?.macros?.calories||0)||0,carbs:Number(f?.macros?.carbs||0)||0,protein:Number(f?.macros?.protein||0)||0,fat:Number(f?.macros?.fat||0)||0}})); saveCloud(); updateAllDisplays(); showSection("dashboard"); alert("Foods logged.");}
+function renderMemorySections(){const insightsRoot=document.getElementById("coach-insights-list"), historyRoot=document.getElementById("coach-history-list"); if(insightsRoot){insightsRoot.innerHTML=!coachInsights.length?`<div class="tiny muted">No saved insights yet.</div>`:coachInsights.map(i=>`<div class="insight-item"><div class="tiny">${new Date(i.createdAt).toLocaleString()}</div><div style="margin-top:4px">${escapeHtml(i.text)}</div><div style="margin-top:8px"><button class="btn danger tiny" onclick="deleteInsight('${i.id}')">Delete</button></div></div>`).join("");} if(historyRoot){historyRoot.innerHTML=!coachHistory.length?`<div class="tiny muted">No coach history yet.</div>`:coachHistory.slice().reverse().slice(0,12).map(h=>`<div class="insight-item"><div class="tiny">${new Date(h.timestamp).toLocaleString()} • intent: ${escapeHtml(h.intent||"")}</div><div style="margin-top:6px"><b>You:</b> ${escapeHtml(h.userMessage||"")}</div><div style="margin-top:4px"><b>Coach:</b> ${escapeHtml(h.assistantReply||"")}</div></div>`).join("");}}
+function deleteInsight(id){coachInsights=coachInsights.filter(i=>i.id!==id); saveCloud(); renderMemorySections();}
+function showAuth(){document.getElementById("auth-modal").classList.add("show");} function closeAuth(){document.getElementById("auth-modal").classList.remove("show");}
+async function signup(){if(!firebaseInitialized) return alert("Firebase not configured"); const email=document.getElementById("login-email").value.trim(), pass=document.getElementById("login-password").value; if(!email||!pass) return alert("Enter email and password"); try{await firebase.auth().createUserWithEmailAndPassword(email,pass); closeAuth();}catch(e){alert("Signup error: "+e.message);}}
+async function login(){if(!firebaseInitialized) return alert("Firebase not configured"); const email=document.getElementById("login-email").value.trim(), pass=document.getElementById("login-password").value; if(!email||!pass) return alert("Enter email and password"); try{await firebase.auth().signInWithEmailAndPassword(email,pass); closeAuth();}catch(e){alert("Login error: "+e.message);}}
+function updateAllDisplays(){updateDashboard(); updateFoodLogDisplay();}
+window.onload=function(){loadLocal(); initDate(); syncProfileUI(); updateAllDisplays(); renderMemorySections(); renderSavedLists(); if(firebaseInitialized){firebase.auth().onAuthStateChanged(async (u)=>{if(u){currentUser=u; document.getElementById("login-button").style.display="none"; await loadCloud();}else{currentUser=null; document.getElementById("login-button").style.display="inline-block"; loadLocal(); syncProfileUI(); updateAllDisplays(); renderMemorySections(); renderSavedLists();}});}};
+window.addEventListener("beforeunload", saveLocal);
+</script>
 </body>
 </html>
