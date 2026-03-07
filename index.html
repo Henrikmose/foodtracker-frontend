@@ -184,7 +184,7 @@
         <div class="logo">FT</div>
         <div>
           <h1>Food Tracker</h1>
-          <div class="subtitle">AI Nutrition Coach • Memory-aware meal planning • Food logging</div>
+          <div class="subtitle">AI Nutrition Coach • Split planner fix • Food logging</div>
         </div>
       </div>
 
@@ -193,7 +193,9 @@
           <button class="nav-btn active" onclick="showSection('dashboard')">Dashboard</button>
           <button class="nav-btn" onclick="showSection('profile')">Profile</button>
           <button class="nav-btn" onclick="showSection('coach')">AI Nutrition Coach</button>
+          <button class="nav-btn" onclick="showSection('planner')">Plan Generator</button>
           <button class="nav-btn" onclick="showSection('foodlog')">Food Log</button>
+          <button class="nav-btn" onclick="showSection('shopping')">Shopping</button>
           <button class="nav-btn" onclick="showSection('memory')">Memory</button>
         </nav>
 
@@ -204,7 +206,6 @@
     </header>
 
     <main>
-      <!-- Dashboard -->
       <section id="dashboard" class="content">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
           <div>
@@ -260,7 +261,6 @@
         </div>
       </section>
 
-      <!-- Profile -->
       <section id="profile" class="content" style="display:none">
         <h2 class="section-title">Profile</h2>
 
@@ -302,15 +302,14 @@
         </div>
       </section>
 
-      <!-- AI Coach -->
       <section id="coach" class="content" style="display:none">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
           <div>
             <h2 class="section-title">AI Nutrition Coach</h2>
-            <div class="tiny">This coach now uses your recent food history, saved insights, profile memory, and recent chat context.</div>
+            <div class="tiny">Use this for advice, food logging by chat, repeating yesterday’s foods, and saving nutrition preferences. Multi-day plans now use the separate Plan Generator.</div>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn secondary tiny" onclick="coachQuickPrompt('I am playing hockey tonight at 9pm. Build me a food plan for today including what and when I should eat.')">Hockey day</button>
+            <button class="btn secondary tiny" onclick="coachQuickPrompt('What should I eat before hockey tonight at 9pm?')">Pregame advice</button>
             <button class="btn secondary tiny" onclick="coachQuickPrompt('Use the same breakfast I had yesterday again today.')">Repeat yesterday breakfast</button>
             <button class="btn secondary tiny" onclick="coachQuickPrompt('I ate 2 eggs, toast, avocado, and a Fairlife shake. Parse that for my food log.')">Log what I ate</button>
           </div>
@@ -320,25 +319,61 @@
           <div class="chat-message assistant">
             <strong>AI Nutrition Coach</strong>
             <div class="tiny muted" style="margin-top:6px">
-              I can help with:
-              <br>• performance day fueling
-              <br>• daily or weekly plans
-              <br>• logging foods from chat
-              <br>• repeating yesterday’s foods
-              <br>• remembering nutrition patterns that work for you
+              Best uses here:
+              <br>• performance nutrition advice
+              <br>• “what should I eat today?”
+              <br>• log foods from chat
+              <br>• repeat yesterday’s meals
+              <br>• save nutrition preferences
             </div>
           </div>
         </div>
 
         <div class="chat-input-row">
-          <input id="coach-chat-input" class="chat-input" placeholder="Example: I’m playing hockey tonight at 9pm and want the same breakfast I had yesterday." onkeypress="if(event.key==='Enter') sendCoachMessage()">
+          <input id="coach-chat-input" class="chat-input" placeholder="Example: What should I eat before hockey tonight?" onkeypress="if(event.key==='Enter') sendCoachMessage()">
           <button class="btn" id="coach-send-btn" onclick="sendCoachMessage()">Send</button>
         </div>
 
         <div id="coach-action-area" style="margin-top:12px"></div>
       </section>
 
-      <!-- Food Log -->
+      <section id="planner" class="content" style="display:none">
+        <h2 class="section-title">Structured Plan Generator</h2>
+        <div class="tiny" style="margin-bottom:12px">Use this for multi-day and weekly plans so the coach chat doesn’t time out.</div>
+
+        <div class="card">
+          <div class="row">
+            <div class="input-group" style="flex:1;min-width:180px">
+              <label>Start Date</label>
+              <input type="date" id="plan-start-date">
+            </div>
+            <div class="input-group" style="flex:1;min-width:120px">
+              <label>Number of Days</label>
+              <input type="number" id="plan-days" value="6" min="1" max="14">
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label>Schedule / Activity Details</label>
+            <textarea id="plan-schedule" placeholder="Example: Hockey Sat 9pm, Tue 7:25pm, Thu 8pm. Medium workout on other days."></textarea>
+          </div>
+
+          <div class="input-group">
+            <label>Extra Preferences</label>
+            <textarea id="plan-preferences" placeholder="Example: high protein, simple meals, seafood 2x/week, keep digestion light before late hockey games."></textarea>
+          </div>
+
+          <div class="row">
+            <button class="btn" id="planner-generate-btn" onclick="generateStructuredPlan()">Generate Structured Plan</button>
+            <button class="btn secondary" onclick="selectAllPlanSelections(true)">Select all</button>
+            <button class="btn secondary" onclick="selectAllPlanSelections(false)">Clear all</button>
+          </div>
+          <div id="planner-status" class="tiny" style="margin-top:8px"></div>
+        </div>
+
+        <div id="planner-results" style="margin-top:12px"></div>
+      </section>
+
       <section id="foodlog" class="content" style="display:none">
         <h2 class="section-title">Food Log</h2>
 
@@ -379,13 +414,48 @@
           </div>
         </div>
 
+
+        <div class="card" style="margin-top:12px">
+          <h3 style="margin:0 0 8px 0">AI Helpers</h3>
+          <div class="tiny muted" style="margin-bottom:8px">Use AI to estimate macros from a food name or analyze a food photo. Photo analysis works best when the food and package are clearly visible.</div>
+          <div class="row">
+            <button class="btn secondary" onclick="estimateMacrosFromFoodName()">Estimate macros from food name</button>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <div class="input-group" style="flex:2;min-width:220px">
+              <label>Food photo</label>
+              <input type="file" id="food-photo-input" accept="image/*">
+            </div>
+            <div style="display:flex;align-items:flex-end">
+              <button class="btn" onclick="analyzeFoodPhoto()">Analyze food photo</button>
+            </div>
+          </div>
+          <div id="food-ai-status" class="tiny" style="margin-top:8px"></div>
+        </div>
+
         <div class="card" style="margin-top:12px">
           <h3 style="margin:0 0 8px 0">Entries for selected date</h3>
           <div id="food-log-list" class="tiny muted">No entries yet.</div>
         </div>
       </section>
 
-      <!-- Memory -->
+
+      <section id="shopping" class="content" style="display:none">
+        <h2 class="section-title">Shopping List</h2>
+
+        <div class="card">
+          <div class="tiny muted" style="margin-bottom:8px">This is a rough grocery list built from the ingredients inside your assigned meals. Because meal ingredients are currently simple text, counts are approximate and not yet unit-based.</div>
+          <div class="row">
+            <button class="btn" onclick="renderShoppingList()">Refresh Shopping List</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <h3 style="margin:0 0 8px 0">Aggregated Ingredients</h3>
+          <div id="shopping-list" class="tiny muted">No assigned meal ingredients yet.</div>
+        </div>
+      </section>
+
       <section id="memory" class="content" style="display:none">
         <h2 class="section-title">Coach Memory</h2>
 
@@ -404,7 +474,6 @@
     </main>
   </div>
 
-  <!-- Edit meal modal -->
   <div id="edit-meal-modal" class="modal">
     <div class="modal-content">
       <h3 style="margin:0 0 8px 0">Edit Meal Servings</h3>
@@ -422,7 +491,6 @@
     </div>
   </div>
 
-  <!-- Auth modal -->
   <div id="auth-modal" class="modal">
     <div class="modal-content">
       <h3 style="margin:0 0 10px 0">Login / Sign Up</h3>
@@ -478,9 +546,10 @@
 
     let foodLog = [];
     let assignedMeals = [];
-    let coachHistory = [];   // {timestamp,userMessage,assistantReply,intent}
-    let coachInsights = [];  // {id,text,createdAt}
+    let coachHistory = [];
+    let coachInsights = [];
     let lastCoachAction = null;
+    let lastPlannerAction = null;
     let currentViewDate = new Date().toISOString().split("T")[0];
     let editingMealId = null;
 
@@ -506,30 +575,31 @@
       const first = text.indexOf("{");
       const last = text.lastIndexOf("}");
       if(first === -1 || last === -1 || last <= first) return null;
-      const sub = text.slice(first, last + 1);
+      let sub = text.slice(first, last + 1);
+      sub = sub.replace(/,\s*([}\]])/g, "$1");
       try { return JSON.parse(sub); } catch(e){}
       return null;
     }
 
     function saveLocal(){
-      localStorage.setItem("ft_profile_v3", JSON.stringify(userProfile));
-      localStorage.setItem("ft_foodLog_v3", JSON.stringify(foodLog));
-      localStorage.setItem("ft_assignedMeals_v3", JSON.stringify(assignedMeals));
-      localStorage.setItem("ft_coachHistory_v3", JSON.stringify(coachHistory));
-      localStorage.setItem("ft_coachInsights_v3", JSON.stringify(coachInsights));
+      localStorage.setItem("ft_profile_v4", JSON.stringify(userProfile));
+      localStorage.setItem("ft_foodLog_v4", JSON.stringify(foodLog));
+      localStorage.setItem("ft_assignedMeals_v4", JSON.stringify(assignedMeals));
+      localStorage.setItem("ft_coachHistory_v4", JSON.stringify(coachHistory));
+      localStorage.setItem("ft_coachInsights_v4", JSON.stringify(coachInsights));
     }
 
     function loadLocal(){
       try {
-        const p = JSON.parse(localStorage.getItem("ft_profile_v3"));
+        const p = JSON.parse(localStorage.getItem("ft_profile_v4"));
         if(p) userProfile = p;
-        const fl = JSON.parse(localStorage.getItem("ft_foodLog_v3"));
+        const fl = JSON.parse(localStorage.getItem("ft_foodLog_v4"));
         if(Array.isArray(fl)) foodLog = fl;
-        const am = JSON.parse(localStorage.getItem("ft_assignedMeals_v3"));
+        const am = JSON.parse(localStorage.getItem("ft_assignedMeals_v4"));
         if(Array.isArray(am)) assignedMeals = am;
-        const ch = JSON.parse(localStorage.getItem("ft_coachHistory_v3"));
+        const ch = JSON.parse(localStorage.getItem("ft_coachHistory_v4"));
         if(Array.isArray(ch)) coachHistory = ch;
-        const ci = JSON.parse(localStorage.getItem("ft_coachInsights_v3"));
+        const ci = JSON.parse(localStorage.getItem("ft_coachInsights_v4"));
         if(Array.isArray(ci)) coachInsights = ci;
       } catch(e){}
     }
@@ -573,12 +643,15 @@
         if(id==="dashboard" && t.includes("dashboard")) b.classList.add("active");
         if(id==="profile" && t.includes("profile")) b.classList.add("active");
         if(id==="coach" && t.includes("coach")) b.classList.add("active");
+        if(id==="planner" && t.includes("plan")) b.classList.add("active");
         if(id==="foodlog" && t.includes("food")) b.classList.add("active");
+        if(id==="shopping" && t.includes("shopping")) b.classList.add("active");
         if(id==="memory" && t.includes("memory")) b.classList.add("active");
       });
 
       if(id==="dashboard") updateDashboard();
       if(id==="foodlog") updateFoodLogDisplay();
+      if(id==="shopping") renderShoppingList();
       if(id==="profile") syncProfileUI();
       if(id==="memory") renderMemorySections();
     }
@@ -608,6 +681,9 @@
 
     function initDate(){
       document.getElementById("view-date").value = currentViewDate;
+      const tomorrow = addDays(currentViewDate, 1);
+      const plannerDate = document.getElementById("plan-start-date");
+      if(plannerDate) plannerDate.value = tomorrow;
     }
 
     function changeViewDate(delta){
@@ -886,7 +962,7 @@
       alert("Copied yesterday’s foods to today.");
     }
 
-    function getRecentFoodHistory(days = 7){
+    function getRecentFoodHistory(days = 3){
       const arr = [];
       for(let i=0;i<days;i++){
         const date = addDays(currentViewDate, -i);
@@ -901,8 +977,7 @@
             slot: m.slot,
             name: m.name,
             servings: m.servings,
-            status: m.status,
-            macrosPerServing: m.macrosPerServing
+            status: m.status
           }));
         if(foods.length || meals.length){
           arr.push({ date, foods, meals });
@@ -920,11 +995,11 @@
       };
     }
 
-    function getRecentCoachHistory(limit = 8){
+    function getRecentCoachHistory(limit = 3){
       return coachHistory.slice(-limit);
     }
 
-    function getRecentCoachInsights(limit = 8){
+    function getRecentCoachInsights(limit = 3){
       return coachInsights.slice(-limit);
     }
 
@@ -944,9 +1019,8 @@
       container.scrollTop = container.scrollHeight;
     }
 
-    async function callOpenAI(messages = [], maxTokens = 1400, temperature = 0.3){
+    async function callOpenAI(messages = [], maxTokens = 1200, temperature = 0.3, timeoutMs = 90000){
       const controller = new AbortController();
-      const timeoutMs = 65000;
       const t = setTimeout(() => controller.abort(), timeoutMs);
 
       try{
@@ -966,7 +1040,7 @@
         return data?.choices?.[0]?.message?.content || "";
       } catch(e){
         if(e.name === "AbortError"){
-          throw new Error("Request timed out after 65 seconds.");
+          throw new Error(`Request timed out after ${Math.round(timeoutMs/1000)} seconds.`);
         }
         throw e;
       } finally {
@@ -987,20 +1061,20 @@
       btn.textContent = "Thinking…";
 
       const yesterdaySummary = getYesterdaySummary();
-      const recentFoodHistory = getRecentFoodHistory(7);
-      const recentCoachHistory = getRecentCoachHistory(8);
-      const recentCoachInsights = getRecentCoachInsights(8);
+      const recentFoodHistory = getRecentFoodHistory(3);
+      const recentCoachHistory = getRecentCoachHistory(3);
+      const recentCoachInsights = getRecentCoachInsights(3);
       const todayFoods = foodLog.filter(f => f.date === currentViewDate);
       const todayMeals = assignedMeals.filter(m => m.date === currentViewDate);
 
       const system = `
 You are an AI Nutrition Coach for a food-tracking app.
-You MUST return ONLY valid JSON.
+Return ONLY valid JSON.
 
 Schema:
 {
   "reply": "string",
-  "intent": "advice" | "log_food" | "daily_plan" | "weekly_plan" | "save_preference" | "adjust_day",
+  "intent": "advice" | "log_food" | "save_preference" | "adjust_day",
   "foods": [
     {
       "name": "string",
@@ -1032,16 +1106,15 @@ Schema:
 }
 
 Rules:
+- This coach is NOT for weekly plan generation. If user asks for a multi-day or weekly plan, respond with intent "advice" and tell them to use the Plan Generator.
 - Always include "reply" and "intent".
 - Use the provided recent history, yesterday's foods, saved coach insights, and coach memory notes.
 - If the user asks to repeat yesterday's breakfast/meal/foods, use the actual yesterday context provided.
 - If the user says they ate foods, parse them into "foods" and use intent "log_food".
-- If the user asks for a plan for today, use "daily_plan".
-- If the user asks for next week / multiple days, use "weekly_plan".
 - If the user asks for recommendations only, use "advice".
 - If the user says to remember a preference or useful rule, use "save_preference".
-- For hockey/performance days, include timing-aware fueling advice.
-- Keep reply concise and useful.
+- For sports/performance days, include timing-aware fueling advice.
+- Keep reply concise.
 `;
 
       const userPayload = {
@@ -1060,7 +1133,7 @@ Rules:
         const raw = await callOpenAI([
           { role: "system", content: system.trim() },
           { role: "user", content: JSON.stringify(userPayload) }
-        ], 1600, 0.3);
+        ], 900, 0.3, 60000);
 
         const parsed = extractFirstJsonObject(raw);
         if(!parsed || !parsed.reply || !parsed.intent){
@@ -1106,9 +1179,10 @@ Rules:
       if(action.intent === "advice"){
         root.innerHTML = `
           <div class="coach-action-box">
-            <div class="tiny">Advice only. You can save this response as an insight if you want to remember it.</div>
+            <div class="tiny">Advice only. Use the separate <b>Plan Generator</b> for multi-day structured meal plans.</div>
             <div style="margin-top:10px">
               <button class="btn" onclick="saveLastReplyAsInsight()">Save this reply as insight</button>
+              <button class="btn secondary" onclick="showSection('planner')">Open Plan Generator</button>
             </div>
           </div>
         `;
@@ -1158,19 +1232,18 @@ Rules:
         return;
       }
 
-      if((action.intent === "daily_plan" || action.intent === "weekly_plan" || action.intent === "adjust_day") && action.plan?.days?.length){
+      if(action.intent === "adjust_day" && action.plan?.days?.length){
         root.innerHTML = `
           <div class="coach-action-box">
-            <div style="font-weight:900">Plan ready</div>
+            <div style="font-weight:900">Adjusted day plan ready</div>
             <div class="tiny" style="margin-top:6px">Review it below, then assign it to your dashboard.</div>
             <div style="margin-top:10px">
-              ${renderCoachPlanHtml(action.plan.days)}
+              ${renderPlanHtml(action.plan.days, "coach")}
             </div>
             <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
               <button class="btn" onclick="confirmAssignCoachPlan()">Assign selected meals</button>
-              <button class="btn secondary" onclick="toggleAllCoachPlanSelections(true)">Select all</button>
-              <button class="btn secondary" onclick="toggleAllCoachPlanSelections(false)">Clear all</button>
-              <button class="btn secondary" onclick="saveLastReplyAsInsight()">Save this reply as insight</button>
+              <button class="btn secondary" onclick="toggleSelections('coach', true)">Select all</button>
+              <button class="btn secondary" onclick="toggleSelections('coach', false)">Clear all</button>
             </div>
           </div>
         `;
@@ -1187,7 +1260,94 @@ Rules:
       `;
     }
 
-    function renderCoachPlanHtml(days){
+    async function generateStructuredPlan(){
+      const startDate = document.getElementById("plan-start-date").value;
+      const days = Math.max(1, Math.min(14, Number(document.getElementById("plan-days").value) || 6));
+      const schedule = document.getElementById("plan-schedule").value.trim();
+      const preferences = document.getElementById("plan-preferences").value.trim();
+      const status = document.getElementById("planner-status");
+      const btn = document.getElementById("planner-generate-btn");
+
+      if(!startDate) return alert("Choose a start date.");
+
+      status.textContent = "Generating structured plan…";
+      btn.disabled = true;
+      btn.textContent = "Generating…";
+
+      const system = `
+You are a structured meal planner for a nutrition app.
+Return ONLY valid minified JSON. No markdown. No explanations before or after the JSON.
+
+Schema:
+{
+  "reply": "string",
+  "plan": {
+    "days": [
+      {
+        "date": "YYYY-MM-DD",
+        "targets": { "calories": number, "carbs": number, "protein": number, "fat": number },
+        "meals": [
+          {
+            "slot": "breakfast" | "lunch" | "dinner" | "snack",
+            "name": "string",
+            "description": "string",
+            "servings": number,
+            "macros": { "calories": number, "carbs": number, "protein": number, "fat": number },
+            "ingredients": ["string"]
+          }
+        ]
+      }
+    ]
+  }
+}
+
+Rules:
+- Generate a practical multi-day plan.
+- Respect the user's goals and schedule.
+- If there are hockey games, create timing-aware meals/snacks for those days.
+- If there are workout days, support performance and recovery.
+- Keep meal descriptions short (max 12 words).
+- Keep ingredients simple and grocery-friendly.
+- Breakfast/lunch/dinner should make sense for each day.
+- If useful, include a snack on hockey days.
+- Return clean JSON only.
+`;
+
+      const userPayload = {
+        startDate,
+        days,
+        schedule,
+        preferences,
+        profile: userProfile
+      };
+
+      try{
+        const raw = await callOpenAI([
+          { role: "system", content: system.trim() },
+          { role: "user", content: JSON.stringify(userPayload) }
+        ], 1500, 0.25, 120000);
+
+        const parsed = extractFirstJsonObject(raw);
+        if(!parsed?.plan?.days?.length){
+          console.log("Planner raw response:", raw);
+          throw new Error("Planner returned invalid format");
+        }
+
+        lastPlannerAction = parsed;
+        status.textContent = parsed.reply || "Plan generated.";
+        renderPlannerResults(parsed.plan.days);
+
+      } catch(e){
+        status.textContent = "Failed: " + (e.message || String(e));
+        document.getElementById("planner-results").innerHTML = "";
+        alert("Structured plan failed: " + (e.message || e));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Generate Structured Plan";
+      }
+    }
+
+    function renderPlanHtml(days, prefix){
       return days.map((d, dayIdx) => `
         <div class="meal-day">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
@@ -1204,7 +1364,7 @@ Rules:
           </div>
 
           ${(d.meals || []).map((m, mealIdx) => {
-            const cbId = `coach_plan_${dayIdx}_${mealIdx}`;
+            const cbId = `${prefix}_plan_${dayIdx}_${mealIdx}`;
             return `
               <div class="meal-slot">
                 <div style="flex:1;min-width:220px">
@@ -1230,14 +1390,92 @@ Rules:
       `).join("");
     }
 
-    function toggleAllCoachPlanSelections(on){
-      if(!lastCoachAction?.plan?.days?.length) return;
-      lastCoachAction.plan.days.forEach((d, dayIdx) => {
+    function renderPlannerResults(days){
+      const root = document.getElementById("planner-results");
+      root.innerHTML = `
+        <div class="coach-action-box">
+          <div style="font-weight:900">Structured plan ready</div>
+          <div class="tiny" style="margin-top:6px">Review it below, then assign the meals you want to your dashboard.</div>
+          <div style="margin-top:10px">${renderPlanHtml(days, "planner")}</div>
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn" onclick="assignPlannerMeals()">Assign selected meals</button>
+            <button class="btn secondary" onclick="toggleSelections('planner', true)">Select all</button>
+            <button class="btn secondary" onclick="toggleSelections('planner', false)">Clear all</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function toggleSelections(prefix, on){
+      const source = prefix === "planner" ? lastPlannerAction?.plan?.days : lastCoachAction?.plan?.days;
+      if(!source?.length) return;
+      source.forEach((d, dayIdx) => {
         (d.meals || []).forEach((m, mealIdx) => {
-          const cb = document.getElementById(`coach_plan_${dayIdx}_${mealIdx}`);
+          const cb = document.getElementById(`${prefix}_plan_${dayIdx}_${mealIdx}`);
           if(cb) cb.checked = !!on;
         });
       });
+    }
+
+    function selectAllPlanSelections(on){
+      toggleSelections("planner", on);
+    }
+
+    function assignDaysToDashboard(days, prefix){
+      let count = 0;
+      days.forEach((d, dayIdx) => {
+        (d.meals || []).forEach((m, mealIdx) => {
+          const cb = document.getElementById(`${prefix}_plan_${dayIdx}_${mealIdx}`);
+          if(!cb || !cb.checked) return;
+
+          assignedMeals.push({
+            id: uid("meal"),
+            date: d.date,
+            slot: m.slot || "meal",
+            name: m.name || "Meal",
+            description: m.description || "",
+            servings: Number(m.servings || 1) || 1,
+            macrosPerServing: {
+              calories: Number(m?.macros?.calories || 0) || 0,
+              carbs: Number(m?.macros?.carbs || 0) || 0,
+              protein: Number(m?.macros?.protein || 0) || 0,
+              fat: Number(m?.macros?.fat || 0) || 0
+            },
+            ingredients: Array.isArray(m.ingredients) ? m.ingredients : [],
+            status: "planned",
+            source: prefix
+          });
+          count++;
+        });
+      });
+      return count;
+    }
+
+    function assignPlannerMeals(){
+      const days = lastPlannerAction?.plan?.days;
+      if(!Array.isArray(days) || !days.length) return alert("No structured plan available.");
+      const count = assignDaysToDashboard(days, "planner");
+      if(!count) return alert("No meals selected.");
+
+      saveCloud();
+      currentViewDate = days[0].date;
+      document.getElementById("view-date").value = currentViewDate;
+      updateAllDisplays();
+      showSection("dashboard");
+      alert(`Assigned ${count} meals to the dashboard.`);
+    }
+
+    function confirmAssignCoachPlan(){
+      const days = lastCoachAction?.plan?.days;
+      if(!Array.isArray(days) || !days.length) return;
+      const count = assignDaysToDashboard(days, "coach");
+      if(!count) return alert("No meals selected.");
+      saveCloud();
+      currentViewDate = days[0].date;
+      document.getElementById("view-date").value = currentViewDate;
+      updateAllDisplays();
+      showSection("dashboard");
+      alert(`Assigned ${count} meals to the dashboard.`);
     }
 
     function confirmSaveCoachPreference(){
@@ -1288,46 +1526,130 @@ Rules:
       alert("Foods logged.");
     }
 
-    function confirmAssignCoachPlan(){
-      const days = lastCoachAction?.plan?.days;
-      if(!Array.isArray(days) || !days.length) return;
 
-      let count = 0;
+    function fillHockeyTemplate(){
+      const schedule = document.getElementById("plan-schedule");
+      const prefs = document.getElementById("plan-preferences");
+      if(schedule) schedule.value = "Hockey Sat 9pm, Tue 7:25pm, Thu 8pm. Medium workout on other days.";
+      if(prefs && !prefs.value.trim()) prefs.value = "High protein, simple meals, easier digestion before late hockey games, add a pregame snack and a postgame recovery option.";
+    }
 
-      days.forEach((d, dayIdx) => {
-        (d.meals || []).forEach((m, mealIdx) => {
-          const cb = document.getElementById(`coach_plan_${dayIdx}_${mealIdx}`);
-          if(!cb || !cb.checked) return;
+    function normalizeIngredientName(name=""){
+      return String(name || "").trim().toLowerCase().replace(/^[\d\s./-]+/, "").replace(/\s+/g, " ");
+    }
 
-          assignedMeals.push({
-            id: uid("meal"),
-            date: d.date,
-            slot: m.slot || "meal",
-            name: m.name || "Meal",
-            description: m.description || "",
-            servings: Number(m.servings || 1) || 1,
-            macrosPerServing: {
-              calories: Number(m?.macros?.calories || 0) || 0,
-              carbs: Number(m?.macros?.carbs || 0) || 0,
-              protein: Number(m?.macros?.protein || 0) || 0,
-              fat: Number(m?.macros?.fat || 0) || 0
-            },
-            ingredients: Array.isArray(m.ingredients) ? m.ingredients : [],
-            status: "planned",
-            source: "coach"
-          });
-          count++;
+    function renderShoppingList(){
+      const root = document.getElementById("shopping-list");
+      if(!root) return;
+      const counts = {};
+      assignedMeals.forEach(meal => {
+        (meal.ingredients || []).forEach(raw => {
+          const key = normalizeIngredientName(raw);
+          if(!key) return;
+          if(!counts[key]) counts[key] = {name: raw, count: 0};
+          counts[key].count += 1;
         });
       });
+      const items = Object.values(counts).sort((a,b) => b.count - a.count || a.name.localeCompare(b.name));
+      if(!items.length){
+        root.innerHTML = '<div class="tiny muted">No assigned meal ingredients yet.</div>';
+        return;
+      }
+      root.innerHTML = items.map(item => `
+        <div class="meal-slot">
+          <div style="flex:1">
+            <div class="meal-slot-title">${escapeHtml(item.name)}</div>
+            <div class="meal-slot-meta">Appears in ${item.count} planned meal${item.count===1?'':'s'}</div>
+          </div>
+        </div>
+      `).join("");
+    }
 
-      if(count === 0) return alert("No meals selected.");
+    async function estimateMacrosFromFoodName(){
+      const name = document.getElementById("food-name").value.trim();
+      if(!name) return alert("Enter a food name first.");
+      const status = document.getElementById("food-ai-status");
+      if(status) status.textContent = "Estimating macros from food name…";
 
-      saveCloud();
-      currentViewDate = days[0].date;
-      document.getElementById("view-date").value = currentViewDate;
-      updateAllDisplays();
-      showSection("dashboard");
-      alert(`Assigned ${count} meals to the dashboard.`);
+      const system = `You estimate food macros for a nutrition tracker.
+Return ONLY valid JSON.
+Schema:
+{"name":"string","servings":1,"macros":{"calories":0,"carbs":0,"protein":0,"fat":0}}
+Rules:
+- Estimate a typical single serving unless the user gave a serving size in the food name.
+- Use reasonable consumer-facing estimates.
+- Return JSON only.`;
+
+      try{
+        const raw = await callOpenAI([
+          { role: "system", content: system },
+          { role: "user", content: name }
+        ], 300, 0.2, 45000);
+
+        const parsed = extractFirstJsonObject(raw);
+        if(!parsed?.macros) throw new Error("Invalid macro estimate");
+        document.getElementById("food-calories").value = Math.round(parsed?.macros?.calories || 0);
+        document.getElementById("food-carbs").value = Math.round(parsed?.macros?.carbs || 0);
+        document.getElementById("food-protein").value = Math.round(parsed?.macros?.protein || 0);
+        document.getElementById("food-fat").value = Math.round(parsed?.macros?.fat || 0);
+        if(parsed?.servings) document.getElementById("food-servings").value = Number(parsed.servings) || 1;
+        if(status) status.textContent = "Estimated macros added to the form.";
+      } catch(e){
+        if(status) status.textContent = "Macro estimate failed.";
+        alert("Macro estimate failed: " + (e.message || e));
+      }
+    }
+
+    function fileToDataUrl(file){
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function analyzeFoodPhoto(){
+      const input = document.getElementById("food-photo-input");
+      const file = input?.files?.[0];
+      const status = document.getElementById("food-ai-status");
+      if(!file) return alert("Choose a photo first.");
+      if(status) status.textContent = "Analyzing food photo…";
+
+      try{
+        const dataUrl = await fileToDataUrl(file);
+        const system = `You analyze food photos for a nutrition tracker.
+Return ONLY valid JSON.
+Schema:
+{"name":"string","servings":1,"macros":{"calories":0,"carbs":0,"protein":0,"fat":0},"confidence":"high"|"medium"|"low","notes":"string"}
+Rules:
+- If uncertain, still provide the best estimate and set confidence lower.
+- Return JSON only.`;
+
+        const messages = [
+          { role: "system", content: system },
+          { role: "user", content: [
+            { type: "text", text: "Identify the food and estimate a typical serving's calories, carbs, protein, and fat. If it looks packaged, use the packaging clues if visible." },
+            { type: "image_url", image_url: { url: dataUrl } }
+          ]}
+        ];
+
+        const raw = await callOpenAI(messages, 500, 0.2, 90000);
+        const parsed = extractFirstJsonObject(raw);
+        if(!parsed?.macros) throw new Error("Invalid food photo analysis");
+
+        if(parsed?.name) document.getElementById("food-name").value = parsed.name;
+        document.getElementById("food-calories").value = Math.round(parsed?.macros?.calories || 0);
+        document.getElementById("food-carbs").value = Math.round(parsed?.macros?.carbs || 0);
+        document.getElementById("food-protein").value = Math.round(parsed?.macros?.protein || 0);
+        document.getElementById("food-fat").value = Math.round(parsed?.macros?.fat || 0);
+        if(parsed?.servings) document.getElementById("food-servings").value = Number(parsed.servings) || 1;
+
+        if(status) status.textContent = `Photo analyzed (${parsed.confidence || "unknown"} confidence). Review values before logging.`;
+      } catch(e){
+        if(status) status.textContent = "Photo analysis failed.";
+        alert("Photo analysis failed. Your backend may not yet support image inputs on /api/ai. Error: " + (e.message || e));
+      }
     }
 
     function renderMemorySections(){
@@ -1403,6 +1725,7 @@ Rules:
     function updateAllDisplays(){
       updateDashboard();
       updateFoodLogDisplay();
+      renderShoppingList();
     }
 
     window.onload = function(){
