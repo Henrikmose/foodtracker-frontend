@@ -3769,15 +3769,12 @@ function addHealthChatMessage(message, type) {
     messageDiv.className = `chat-message ${type}`;
     
     if (type === 'assistant') {
-        const formattedMessage = message
+        const formattedMessage = String(message || '')
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/
-
-/g, '</p><p>')
-            .replace(/
-/g, '<br>');
+            .split('\n\n').join('</p><p>')
+            .split('\n').join('<br>');
         messageDiv.innerHTML = `<p><strong>Health Assistant:</strong></p><p>${formattedMessage}</p>`;
-    } else {
+    } else {    } else {
         messageDiv.innerHTML = `<p><strong>You:</strong> ${message}</p>`;
     }
     
@@ -4024,14 +4021,14 @@ function loadHealthPreferences() {
 
 // Initialize health preferences on page load
 if (typeof window !== 'undefined') {
-const originalOnload = window.onload;
-window.onload = function() {
-if (originalOnload) originalOnload();
-loadHealthPreferences();
-displayPreferenceBadges();
-};
+    const originalOnload = window.onload;
+    window.onload = function() {
+        if (originalOnload) originalOnload();
+        loadHealthPreferences();
+        displayPreferenceBadges();
+    };
 }
         
 </script>
 </body>
-</html> 
+</html>
