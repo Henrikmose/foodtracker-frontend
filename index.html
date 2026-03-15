@@ -4024,14 +4024,14 @@ function loadHealthPreferences() {
 
 // Initialize health preferences on page load
 if (typeof window !== 'undefined') {
-    const originalOnload = window.onload;
-    window.onload = function() {
-        if (originalOnload) originalOnload();
-        loadHealthPreferences();
-        displayPreferenceBadges();
-    };
+const originalOnload = window.onload;
+window.onload = function() {
+if (originalOnload) originalOnload();
+loadHealthPreferences();
+displayPreferenceBadges();
+};
 }
         
-    </script>
+</script>
 </body>
-</html>
+</html> 
