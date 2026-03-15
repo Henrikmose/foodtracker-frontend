@@ -3774,7 +3774,7 @@ function addHealthChatMessage(message, type) {
             .split('\n\n').join('</p><p>')
             .split('\n').join('<br>');
         messageDiv.innerHTML = `<p><strong>Health Assistant:</strong></p><p>${formattedMessage}</p>`;
-    } else {    } else {
+    } else {
         messageDiv.innerHTML = `<p><strong>You:</strong> ${message}</p>`;
     }
     
