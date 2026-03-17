@@ -1011,18 +1011,18 @@
         </div>
 
         <div class="nav">
-            <button class="nav-btn active" onclick="showSection('dashboard')">Dashboard</button>
-            <button class="nav-btn" onclick="showSection('profile')">Profile</button>
-            <button class="nav-btn" onclick="showSection('healthassistant')">Health Assistant</button>
-            <button class="nav-btn" onclick="showSection('mealplan')">AI Meal Planner</button>
-            <button class="nav-btn" onclick="showSection('weekview')">Week View</button>
+            <button class="nav-btn active" onclick="showSection('healthassistant')">AI Coach</button>
+            <button class="nav-btn" onclick="showSection('mealplan')">Meal Plan</button>
+            <button class="nav-btn" onclick="showSection('dashboard')">Dashboard</button>
             <button class="nav-btn" onclick="showSection('foodlog')">Food Log</button>
+            <button class="nav-btn" onclick="showSection('weekview')">Week View</button>
             <button class="nav-btn" onclick="showSection('shopping')">Shopping List</button>
+            <button class="nav-btn" onclick="showSection('profile')">Profile</button>
         </div>
 
         <div class="content">
             <!-- Dashboard Section -->
-            <div id="dashboard" class="section active">
+            <div id="dashboard" class="section">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 15px; flex-wrap: wrap;">
                     <h2 class="section-title" style="margin-bottom: 0; flex: 1; min-width: 200px;">Daily Progress</h2>
                     
@@ -1262,23 +1262,32 @@
             </div>
 
             <!-- Health Assistant Section -->
-            <div id="healthassistant" class="section">
-                <h2 class="section-title">🏥 Health Assistant</h2>
+            <div id="healthassistant" class="section active">
+                <h2 class="section-title">🧠 AI Coach</h2>
                 <p style="color: #666; margin-bottom: 20px;">Ask me anything about nutrition, health, supplements, and healthy living. I can help you optimize your diet!</p>
                 
                 <div class="card">
                     <h3>💬 Chat with Your Health Assistant</h3>
                     
-                    <!-- Quick Action Buttons -->
+                    <div class="card" style="background: linear-gradient(135deg, #E8F5E9, #F1F8E9); border: 1px solid #C8E6C9; margin-bottom: 18px;">
+                        <h3 style="margin-bottom: 8px;">Today's Coaching Snapshot</h3>
+                        <div id="coach-summary" style="color:#2E7D32; font-size:14px; line-height:1.8;">
+                            Calories left: --<br>
+                            Protein left: --<br>
+                            Carbs left: --<br>
+                            Fat left: --
+                        </div>
+                    </div>
+
                     <div style="margin-bottom: 20px;">
-                        <p style="color: #666; font-size: 14px; margin-bottom: 10px;">Quick topics:</p>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px;">
-                            <button class="btn btn-sm btn-secondary" onclick="askHealthQuestion('What foods are good for high blood pressure?')">🩺 Blood Pressure</button>
-                            <button class="btn btn-sm btn-secondary" onclick="askHealthQuestion('What are the health benefits of ginger?')">🌿 Ginger Benefits</button>
-                            <button class="btn btn-sm btn-secondary" onclick="askHealthQuestion('What are the best anti-inflammatory foods?')">🔥 Anti-Inflammatory</button>
-                            <button class="btn btn-sm btn-secondary" onclick="askHealthQuestion('What supplements should I consider for overall health?')">💊 Supplements</button>
-                            <button class="btn btn-sm btn-secondary" onclick="askHealthQuestion('How can I boost my immune system naturally?')">🛡️ Immune System</button>
-                            <button class="btn btn-sm btn-secondary" onclick="askHealthQuestion('What foods are good for heart health?')">❤️ Heart Health</button>
+                        <p style="color: #666; font-size: 14px; margin-bottom: 10px;">Quick actions:</p>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
+                            <button class="btn btn-secondary" style="padding:14px; font-size:14px;" onclick="askHealthQuestion('Plan my meals for today based on my macros')">🧠 Plan Today</button>
+                            <button class="btn btn-secondary" style="padding:14px; font-size:14px;" onclick="askHealthQuestion('Help me log food I just ate')">🥗 Log Food</button>
+                            <button class="btn btn-secondary" style="padding:14px; font-size:14px;" onclick="askHealthQuestion('What macros do I have left today?')">📊 Check Macros</button>
+                            <button class="btn btn-secondary" style="padding:14px; font-size:14px;" onclick="askHealthQuestion('Give me meal ideas that fit my remaining macros')">🍽 Meal Ideas</button>
+                            <button class="btn btn-secondary" style="padding:14px; font-size:14px;" onclick="askHealthQuestion('What should I eat before hockey tonight?')">🏒 Pregame Fuel</button>
+                            <button class="btn btn-secondary" style="padding:14px; font-size:14px;" onclick="askHealthQuestion('I am short on protein, what should I eat?')">💪 Protein Gap</button>
                         </div>
                     </div>
                     
@@ -1384,6 +1393,20 @@
                         <label>Food Name</label>
                         <input type="text" id="food-name" placeholder="e.g., Chicken Breast">
                     </div>
+                    <div class="row">
+                        <div class="input-group">
+                            <label>Log Date</label>
+                            <select id="food-log-date-mode" onchange="toggleCustomLogDate()">
+                                <option value="today">Today</option>
+                                <option value="yesterday">Yesterday</option>
+                                <option value="custom">Custom Date</option>
+                            </select>
+                        </div>
+                        <div class="input-group" id="custom-log-date-wrap" style="display:none;">
+                            <label>Custom Date</label>
+                            <input type="date" id="food-log-custom-date">
+                        </div>
+                    </div>
                     <div class="input-group">
                         <label>Calories (per serving)</label>
                         <input type="number" id="food-calories" placeholder="165">
@@ -1405,11 +1428,20 @@
                         <input type="number" id="food-servings" placeholder="1" value="1" step="0.1" min="0.1">
                         <small style="color: #666; display: block; margin-top: 5px;">Enter 0.5 for half serving, 2 for double, etc.</small>
                     </div>
-                    <button class="btn" onclick="addFood()">Log Food</button>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <button class="btn" onclick="addFood()">Log Food</button>
+                        <button class="btn btn-secondary" onclick="saveCustomFood()">Save to My Foods</button>
+                    </div>
                 </div>
 
                 <div class="card">
-                    <h3>Today's Log</h3>
+                    <h3>My Foods</h3>
+                    <p style="color:#666; font-size:14px; margin-bottom:10px;">Save foods you use often, then add them again quickly.</p>
+                    <div id="saved-foods-list"></div>
+                </div>
+
+                <div class="card">
+                    <h3>Food Log</h3>
                     <div id="food-log-list"></div>
                 </div>
             </div>
@@ -1809,6 +1841,9 @@ if (firebaseInitialized) {
             loadFoodLog();
             loadMeals();
             loadShoppingList();
+    loadSavedFoods();
+    const customDateInput = document.getElementById('food-log-custom-date'); if (customDateInput) customDateInput.value = new Date().toISOString().split('T')[0];
+            loadSavedFoods();
         }
     });
 }
@@ -1831,6 +1866,7 @@ async function saveToCloud() {
             assignedMeals: assignedMeals,
             generatedMeals: generatedMeals,
             shoppingList: shoppingList,
+            savedFoods: savedFoods,
             lastUpdated: new Date().toISOString()
         });
         
@@ -1860,6 +1896,7 @@ async function loadFromCloud() {
             if (data.assignedMeals) assignedMeals = data.assignedMeals;
             if (data.generatedMeals) generatedMeals = data.generatedMeals;
             if (data.shoppingList) shoppingList = data.shoppingList;
+            if (data.savedFoods) savedFoods = data.savedFoods;
 
             // Update UI
             loadProfile();
@@ -1883,6 +1920,7 @@ function saveToLocalStorage() {
     localStorage.setItem('assignedMeals', JSON.stringify(assignedMeals));
     localStorage.setItem('generatedMeals', JSON.stringify(generatedMeals));
     localStorage.setItem('shoppingList', JSON.stringify(shoppingList));
+    localStorage.setItem('savedFoods', JSON.stringify(savedFoods));
 }
 
 let userProfile = {
@@ -1906,6 +1944,7 @@ let foodLog = [];
 let generatedMeals = []; // Unassigned meals from AI
 let assignedMeals = [];  // Meals assigned to specific dates
 let shoppingList = [];
+let savedFoods = [];
 let currentEditingMealId = null;
 let currentEditingFoodId = null;
 let currentViewDate = new Date().toISOString().split('T')[0]; // Currently viewing date
@@ -2887,6 +2926,136 @@ document.addEventListener('click', function(event) {
     }
 });
 
+
+function getSelectedFoodLogDate() {
+    const mode = document.getElementById('food-log-date-mode')?.value || 'today';
+    if (mode === 'today') return new Date().toISOString().split('T')[0];
+    if (mode === 'yesterday') {
+        const d = new Date();
+        d.setDate(d.getDate() - 1);
+        return d.toISOString().split('T')[0];
+    }
+    const custom = document.getElementById('food-log-custom-date')?.value;
+    return custom || new Date().toISOString().split('T')[0];
+}
+
+function toggleCustomLogDate() {
+    const mode = document.getElementById('food-log-date-mode')?.value || 'today';
+    const wrap = document.getElementById('custom-log-date-wrap');
+    if (wrap) wrap.style.display = mode === 'custom' ? 'block' : 'none';
+}
+
+function saveSavedFoods() {
+    if (currentUser && firebaseInitialized) {
+        saveToCloud();
+    } else {
+        localStorage.setItem('savedFoods', JSON.stringify(savedFoods));
+    }
+}
+
+function loadSavedFoods() {
+    const saved = localStorage.getItem('savedFoods');
+    if (saved) {
+        try { savedFoods = JSON.parse(saved) || []; } catch(e) { savedFoods = []; }
+    }
+    renderSavedFoods();
+}
+
+function renderSavedFoods() {
+    const container = document.getElementById('saved-foods-list');
+    if (!container) return;
+    if (!savedFoods.length) {
+        container.innerHTML = '<p style="color:#999; text-align:center; padding:20px;">No saved foods yet</p>';
+        return;
+    }
+    container.innerHTML = savedFoods.map(food => `
+        <div class="food-log-item">
+            <div>
+                <h4>${food.name}</h4>
+                <p>${Math.round(food.caloriesPerServing)} cal | C: ${Math.round(food.carbsPerServing * 10) / 10}g | P: ${Math.round(food.proteinPerServing * 10) / 10}g | F: ${Math.round(food.fatPerServing * 10) / 10}g</p>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button class="btn btn-sm" onclick="quickAddSavedFood(${food.id})">Quick Add</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteSavedFood(${food.id})">Delete</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function saveCustomFood() {
+    const name = document.getElementById('food-name').value.trim();
+    const caloriesPerServing = parseFloat(document.getElementById('food-calories').value);
+    const carbsPerServing = parseFloat(document.getElementById('food-carbs').value);
+    const proteinPerServing = parseFloat(document.getElementById('food-protein').value);
+    const fatPerServing = parseFloat(document.getElementById('food-fat').value);
+    if (!name || [caloriesPerServing, carbsPerServing, proteinPerServing, fatPerServing].some(v => isNaN(v))) {
+        alert('Enter the food details first');
+        return;
+    }
+    const normalized = name.toLowerCase().trim();
+    const existing = savedFoods.find(f => f.name.toLowerCase().trim() === normalized);
+    if (existing) {
+        existing.caloriesPerServing = caloriesPerServing;
+        existing.carbsPerServing = carbsPerServing;
+        existing.proteinPerServing = proteinPerServing;
+        existing.fatPerServing = fatPerServing;
+    } else {
+        savedFoods.unshift({
+            id: Date.now(),
+            name,
+            caloriesPerServing,
+            carbsPerServing,
+            proteinPerServing,
+            fatPerServing
+        });
+    }
+    saveSavedFoods();
+    renderSavedFoods();
+    alert('Saved to My Foods');
+}
+
+function quickAddSavedFood(id) {
+    const food = savedFoods.find(f => f.id === id);
+    if (!food) return;
+    document.getElementById('food-name').value = food.name;
+    document.getElementById('food-calories').value = food.caloriesPerServing;
+    document.getElementById('food-carbs').value = food.carbsPerServing;
+    document.getElementById('food-protein').value = food.proteinPerServing;
+    document.getElementById('food-fat').value = food.fatPerServing;
+    document.getElementById('food-servings').value = 1;
+}
+
+function deleteSavedFood(id) {
+    if (!confirm('Delete this saved food?')) return;
+    savedFoods = savedFoods.filter(f => f.id !== id);
+    saveSavedFoods();
+    renderSavedFoods();
+}
+
+function cleanupAssignedMeals() {
+    const seen = new Set();
+    assignedMeals = (assignedMeals || []).filter(meal => {
+        if (!meal || !meal.date || !meal.name) return false;
+        if (!meal.id) meal.id = Date.now() + Math.floor(Math.random() * 100000);
+        const key = `${meal.date}|${meal.time || ''}|${meal.name}|${meal.id}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        if (typeof meal.servings !== 'number' || isNaN(meal.servings)) meal.servings = 1;
+        if (typeof meal.completed !== 'boolean') meal.completed = false;
+        return true;
+    });
+}
+
+function removeFuturePlannedMeals() {
+    const today = new Date().toISOString().split('T')[0];
+    assignedMeals = assignedMeals.filter(meal => {
+        if (!meal || !meal.date) return false;
+        if (meal.date < today) return true;
+        if (meal.completed) return true;
+        return false;
+    });
+}
+
 function addFood() {
     const name = document.getElementById('food-name').value;
     const caloriesPerServing = parseFloat(document.getElementById('food-calories').value);
@@ -3032,13 +3201,13 @@ function loadFoodLog() {
 }
 
 function updateFoodLogDisplay() {
-    const today = new Date().toISOString().split('T')[0];
-    const todayFoods = foodLog.filter(food => food.date === today);
+    const selectedDate = currentViewDate;
+    const todayFoods = foodLog.filter(food => food.date === selectedDate);
     const listElement = document.getElementById('food-log-list');
     const dashboardListElement = document.getElementById('today-food-list');
     
     if (todayFoods.length === 0) {
-        const emptyMsg = '<p style="color: #999; text-align: center; padding: 20px;">No food logged today</p>';
+        const emptyMsg = '<p style="color: #999; text-align: center; padding: 20px;">No food logged for this date</p>';
         listElement.innerHTML = emptyMsg;
         dashboardListElement.innerHTML = emptyMsg;
         return;
@@ -3116,6 +3285,7 @@ function updateDashboard() {
     
     displayTodayMeals();
     displayUpcomingMacros();
+    updateCoachSummary();
 }
 
 function displayUpcomingMacros() {
@@ -3393,7 +3563,7 @@ function generateMeals(request) {
         });
     }
     
-    generatedMeals.push(...newMeals);
+    generatedMeals = newMeals;
     saveGeneratedMeals();
     updateGeneratedMealsDisplay();
     generateShoppingList();
@@ -3632,6 +3802,34 @@ function showMealActions(mealId, event) {
     return;
 }
 
+function updateCoachSummary() {
+    const selectedDate = currentViewDate;
+    const foods = foodLog.filter(food => food.date === selectedDate);
+    const meals = assignedMeals.filter(meal => meal.date === selectedDate && meal.completed);
+    let calories = 0, carbs = 0, protein = 0, fat = 0;
+    foods.forEach(food => {
+        calories += food.calories || 0;
+        carbs += food.carbs || 0;
+        protein += food.protein || 0;
+        fat += food.fat || 0;
+    });
+    meals.forEach(meal => {
+        const servings = meal.completedServings || meal.servings || 1;
+        calories += (meal.calories || 0) * servings;
+        carbs += (meal.carbs || 0) * servings;
+        protein += (meal.protein || 0) * servings;
+        fat += (meal.fat || 0) * servings;
+    });
+    const summary = document.getElementById('coach-summary');
+    if (!summary) return;
+    summary.innerHTML = `
+        Calories left: <strong>${Math.max(0, Math.round((userProfile.dailyCalories || 0) - calories))}</strong><br>
+        Protein left: <strong>${Math.max(0, Math.round((userProfile.macros?.protein || 0) - protein))}g</strong><br>
+        Carbs left: <strong>${Math.max(0, Math.round((userProfile.macros?.carbs || 0) - carbs))}g</strong><br>
+        Fat left: <strong>${Math.max(0, Math.round((userProfile.macros?.fat || 0) - fat))}g</strong>
+    `;
+}
+
 function generateShoppingList() {
     const allIngredients = [];
     generatedMeals.forEach(meal => {
@@ -3709,6 +3907,8 @@ function loadMeals() {
     const savedAssigned = localStorage.getItem('assignedMeals');
     if (savedGenerated) generatedMeals = JSON.parse(savedGenerated);
     if (savedAssigned) assignedMeals = JSON.parse(savedAssigned);
+    cleanupAssignedMeals();
+    saveMeals();
     updateGeneratedMealsDisplay();
 }
 
@@ -4029,6 +4229,6 @@ if (typeof window !== 'undefined') {
     };
 }
         
-</script>
+    </script>
 </body>
 </html>
