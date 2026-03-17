@@ -1338,9 +1338,11 @@
                     <h3 style="margin-top: 30px; color: #4CAF50;">Generated Meals</h3>
                     <p style="color: #666; margin-bottom: 15px;">Each meal has a suggested day (pre-selected). Change the day if needed, then click "Assign". Or use Quick Assign below!</p>
                     
-                    <div style="margin-bottom: 20px; display: flex; gap: 10px;">
-                        <button class="btn btn-secondary" onclick="quickAssignAll()">✓ Quick Assign All (Keep Suggested Days)</button>
-                        <button class="btn btn-danger" onclick="clearGeneratedMeals()">Clear All</button>
+                    <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-secondary" onclick="quickAssignAll()">✓ Quick Assign All (Replace Future Plan)</button>
+                        <button class="btn btn-secondary" onclick="clearFuturePlannedMeals()">Clear Future Planned Meals</button>
+                        <button class="btn btn-danger" onclick="hardResetPlannerData()">Reset Planner Data</button>
+                        <button class="btn btn-danger" onclick="clearGeneratedMeals()">Clear Generated</button>
                     </div>
                     
                     <div id="generated-meals-list" class="generated-meals"></div>
@@ -1897,6 +1899,8 @@ async function loadFromCloud() {
             if (data.generatedMeals) generatedMeals = data.generatedMeals;
             if (data.shoppingList) shoppingList = data.shoppingList;
             if (data.savedFoods) savedFoods = data.savedFoods;
+
+            cleanupAssignedMeals();
 
             // Update UI
             loadProfile();
@@ -3032,23 +3036,37 @@ function deleteSavedFood(id) {
     renderSavedFoods();
 }
 
+function normalizeMealName(name) {
+    return String(name || '')
+        .replace(/^(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+(breakfast|lunch|dinner|snack):\s*/i, '')
+        .replace(/^(today|tomorrow)\s*[:-]?\s*/i, '')
+        .trim();
+}
+
 function cleanupAssignedMeals() {
     const seen = new Set();
     assignedMeals = (assignedMeals || []).filter(meal => {
         if (!meal || !meal.date || !meal.name) return false;
-        if (!meal.id) meal.id = Date.now() + Math.floor(Math.random() * 100000);
-        const key = `${meal.date}|${meal.time || ''}|${meal.name}|${meal.id}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
+
+        meal.name = normalizeMealName(meal.name);
+
+        if (!meal.id || typeof meal.id !== 'number') {
+            meal.id = Date.now() + Math.floor(Math.random() * 100000) + Math.floor(Math.random() * 1000);
+        }
+
         if (typeof meal.servings !== 'number' || isNaN(meal.servings)) meal.servings = 1;
         if (typeof meal.completed !== 'boolean') meal.completed = false;
+
+        const key = `${meal.date}|${meal.time || ''}|${normalizeMealName(meal.name)}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
         return true;
     });
 }
 
 function removeFuturePlannedMeals() {
     const today = new Date().toISOString().split('T')[0];
-    assignedMeals = assignedMeals.filter(meal => {
+    assignedMeals = (assignedMeals || []).filter(meal => {
         if (!meal || !meal.date) return false;
         if (meal.date < today) return true;
         if (meal.completed) return true;
@@ -3056,22 +3074,45 @@ function removeFuturePlannedMeals() {
     });
 }
 
+function clearFuturePlannedMeals() {
+    if (!confirm('Clear all future planned meals? Completed and past meals will stay.')) return;
+    removeFuturePlannedMeals();
+    cleanupAssignedMeals();
+    saveMeals();
+    updateDashboard();
+    updateWeekView();
+    alert('Future planned meals cleared.');
+}
+
+function hardResetPlannerData() {
+    if (!confirm('Reset all planner data? This will remove generated meals and all planned meals.')) return;
+    generatedMeals = [];
+    assignedMeals = [];
+    saveGeneratedMeals();
+    saveMeals();
+    updateGeneratedMealsDisplay();
+    updateDashboard();
+    updateWeekView();
+    alert('Planner data reset.');
+}
+
 function addFood() {
-    const name = document.getElementById('food-name').value;
+    const name = document.getElementById('food-name').value.trim();
     const caloriesPerServing = parseFloat(document.getElementById('food-calories').value);
     const carbsPerServing = parseFloat(document.getElementById('food-carbs').value);
     const proteinPerServing = parseFloat(document.getElementById('food-protein').value);
     const fatPerServing = parseFloat(document.getElementById('food-fat').value);
     const servings = parseFloat(document.getElementById('food-servings').value) || 1;
-    
+    const selectedDate = getSelectedFoodLogDate();
+
     if (!name || isNaN(caloriesPerServing) || isNaN(carbsPerServing) || isNaN(proteinPerServing) || isNaN(fatPerServing)) {
         alert('Please fill in all fields');
         return;
     }
-    
+
     foodLog.push({
         id: Date.now(),
-        date: new Date().toISOString().split('T')[0],
+        date: selectedDate,
         name,
         caloriesPerServing,
         carbsPerServing,
@@ -3084,7 +3125,7 @@ function addFood() {
         fat: fatPerServing * servings,
         timestamp: new Date().toLocaleTimeString()
     });
-    
+
     saveFoodLog();
     document.getElementById('food-name').value = '';
     document.getElementById('food-calories').value = '';
@@ -3092,9 +3133,10 @@ function addFood() {
     document.getElementById('food-protein').value = '';
     document.getElementById('food-fat').value = '';
     document.getElementById('food-servings').value = '1';
-    
+
     updateFoodLogDisplay();
     updateDashboard();
+    renderSavedFoods();
     alert('Food logged!');
 }
 
@@ -3363,7 +3405,7 @@ function displayTodayMeals() {
         <div class="meal-card ${meal.completed ? 'completed' : ''}">
             <div class="meal-header">
                 <div>
-                    <h4>${meal.name}</h4>
+                    <h4>${normalizeMealName(meal.name)}</h4>
                     <div class="meal-time">${meal.time || 'No time set'}</div>
                 </div>
                 <div style="display: flex; gap: 8px; align-items: center;">
@@ -3445,11 +3487,33 @@ function addChatMessage(message, type) {
     container.scrollTop = container.scrollHeight;
 }
 
+function parseMealPlanRequest(request) {
+    const text = String(request || '').toLowerCase();
+    const dayMatch = text.match(/(\d+)\s*-?\s*day/);
+    const calMatch = text.match(/(\d{3,4})\s*(?:cal|calories)/);
+    const proteinMatch = text.match(/(\d{2,3})\s*g\s*(?:of\s*)?protein/);
+
+    const days = Math.max(1, Math.min(14, dayMatch ? parseInt(dayMatch[1], 10) : 7));
+    const calories = calMatch ? parseInt(calMatch[1], 10) : (userProfile.dailyCalories || 2000);
+    const protein = proteinMatch ? parseInt(proteinMatch[1], 10) : (userProfile.macros.protein || 150);
+
+    const profileMacroCalories = ((userProfile.macros.carbs || 250) * 4) + ((userProfile.macros.protein || 150) * 4) + ((userProfile.macros.fat || 67) * 9);
+    const carbRatio = profileMacroCalories ? (((userProfile.macros.carbs || 250) * 4) / profileMacroCalories) : 0.45;
+    const fatRatio = profileMacroCalories ? (((userProfile.macros.fat || 67) * 9) / profileMacroCalories) : 0.25;
+
+    const proteinCalories = protein * 4;
+    const remainingCalories = Math.max(0, calories - proteinCalories);
+    const carbs = Math.round((remainingCalories * carbRatio) / 4);
+    const fat = Math.round((remainingCalories * fatRatio) / 9);
+
+    return { days, calories, protein, carbs, fat };
+}
+
 function generateMeals(request) {
+    const parsed = parseMealPlanRequest(request);
     const newMeals = [];
-    const days = getNext7Days();
-    
-    // Sample meal options for each type
+    const days = getNext7Days().slice(0, parsed.days);
+
     const breakfastOptions = [
         { name: 'Scrambled Eggs & Toast', desc: '3 eggs, 2 whole wheat toast, spinach, avocado', ingredients: ['Eggs', 'Whole wheat bread', 'Spinach', 'Avocado'] },
         { name: 'Greek Yogurt Bowl', desc: 'Greek yogurt, berries, granola, honey, almonds', ingredients: ['Greek yogurt', 'Mixed berries', 'Granola', 'Honey', 'Almonds'] },
@@ -3459,7 +3523,7 @@ function generateMeals(request) {
         { name: 'Smoothie Bowl', desc: 'Protein smoothie bowl with banana, berries, granola', ingredients: ['Protein powder', 'Banana', 'Berries', 'Almond milk', 'Granola'] },
         { name: 'Breakfast Burrito', desc: 'Eggs, black beans, cheese, salsa in whole wheat tortilla', ingredients: ['Eggs', 'Black beans', 'Cheese', 'Salsa', 'Tortilla'] }
     ];
-    
+
     const lunchOptions = [
         { name: 'Grilled Chicken Salad', desc: 'Grilled chicken breast, mixed greens, veggies, balsamic', ingredients: ['Chicken breast', 'Mixed greens', 'Tomatoes', 'Cucumber', 'Balsamic vinegar'] },
         { name: 'Turkey & Avocado Wrap', desc: 'Turkey, avocado, lettuce, tomato in whole wheat wrap', ingredients: ['Turkey breast', 'Avocado', 'Lettuce', 'Tomato', 'Whole wheat wrap'] },
@@ -3469,7 +3533,7 @@ function generateMeals(request) {
         { name: 'Chicken Fajita Bowl', desc: 'Chicken, peppers, onions, rice, black beans, salsa', ingredients: ['Chicken breast', 'Bell peppers', 'Onions', 'Rice', 'Black beans'] },
         { name: 'Greek Salad with Chicken', desc: 'Chicken, cucumber, tomatoes, feta, olives, olive oil', ingredients: ['Chicken breast', 'Cucumber', 'Tomatoes', 'Feta cheese', 'Olives'] }
     ];
-    
+
     const dinnerOptions = [
         { name: 'Baked Salmon & Veggies', desc: 'Baked salmon, sweet potato, steamed broccoli', ingredients: ['Salmon', 'Sweet potato', 'Broccoli', 'Olive oil', 'Lemon'] },
         { name: 'Chicken Stir Fry', desc: 'Chicken, mixed vegetables, brown rice, teriyaki sauce', ingredients: ['Chicken breast', 'Mixed vegetables', 'Brown rice', 'Teriyaki sauce'] },
@@ -3479,7 +3543,7 @@ function generateMeals(request) {
         { name: 'Shrimp & Zucchini Noodles', desc: 'Grilled shrimp, zucchini noodles, garlic, olive oil', ingredients: ['Shrimp', 'Zucchini', 'Garlic', 'Olive oil', 'Lemon'] },
         { name: 'Pork Tenderloin & Asparagus', desc: 'Lean pork tenderloin, roasted asparagus, wild rice', ingredients: ['Pork tenderloin', 'Asparagus', 'Wild rice', 'Herbs'] }
     ];
-    
+
     const snackOptions = [
         { name: 'Protein Shake', desc: 'Protein powder with almond milk and banana', ingredients: ['Protein powder', 'Almond milk', 'Banana'] },
         { name: 'Apple & Almond Butter', desc: 'Sliced apple with almond butter', ingredients: ['Apple', 'Almond butter'] },
@@ -3489,85 +3553,80 @@ function generateMeals(request) {
         { name: 'Hummus & Veggies', desc: 'Hummus with carrot and celery sticks', ingredients: ['Hummus', 'Carrots', 'Celery'] },
         { name: 'Mixed Nuts', desc: 'Handful of mixed nuts (almonds, cashews, walnuts)', ingredients: ['Mixed nuts'] }
     ];
-    
-    // Generate meals distributed across the week
-    for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
+
+    for (let dayIndex = 0; dayIndex < days.length; dayIndex++) {
         const suggestedDay = days[dayIndex];
-        
-        // Breakfast
+
         const breakfast = breakfastOptions[dayIndex % breakfastOptions.length];
         newMeals.push({
             id: Date.now() + (dayIndex * 4) + 0,
             name: breakfast.name,
             time: '7:00 AM',
             description: breakfast.desc,
-            calories: Math.round(userProfile.dailyCalories * 0.25),
-            carbs: Math.round(userProfile.macros.carbs * 0.25),
-            protein: Math.round(userProfile.macros.protein * 0.25),
-            fat: Math.round(userProfile.macros.fat * 0.25),
+            calories: Math.round(parsed.calories * 0.25),
+            carbs: Math.round(parsed.carbs * 0.25),
+            protein: Math.round(parsed.protein * 0.25),
+            fat: Math.round(parsed.fat * 0.25),
             ingredients: breakfast.ingredients,
             suggestedDay: suggestedDay.date,
             suggestedDayLabel: suggestedDay.label,
             servings: 1
         });
-        
-        // Lunch
+
         const lunch = lunchOptions[dayIndex % lunchOptions.length];
         newMeals.push({
             id: Date.now() + (dayIndex * 4) + 1,
             name: lunch.name,
             time: '12:00 PM',
             description: lunch.desc,
-            calories: Math.round(userProfile.dailyCalories * 0.35),
-            carbs: Math.round(userProfile.macros.carbs * 0.35),
-            protein: Math.round(userProfile.macros.protein * 0.35),
-            fat: Math.round(userProfile.macros.fat * 0.35),
+            calories: Math.round(parsed.calories * 0.35),
+            carbs: Math.round(parsed.carbs * 0.35),
+            protein: Math.round(parsed.protein * 0.35),
+            fat: Math.round(parsed.fat * 0.35),
             ingredients: lunch.ingredients,
             suggestedDay: suggestedDay.date,
             suggestedDayLabel: suggestedDay.label,
             servings: 1
         });
-        
-        // Dinner
+
         const dinner = dinnerOptions[dayIndex % dinnerOptions.length];
         newMeals.push({
             id: Date.now() + (dayIndex * 4) + 2,
             name: dinner.name,
             time: '6:30 PM',
             description: dinner.desc,
-            calories: Math.round(userProfile.dailyCalories * 0.3),
-            carbs: Math.round(userProfile.macros.carbs * 0.3),
-            protein: Math.round(userProfile.macros.protein * 0.3),
-            fat: Math.round(userProfile.macros.fat * 0.3),
+            calories: Math.round(parsed.calories * 0.30),
+            carbs: Math.round(parsed.carbs * 0.30),
+            protein: Math.round(parsed.protein * 0.30),
+            fat: Math.round(parsed.fat * 0.30),
             ingredients: dinner.ingredients,
             suggestedDay: suggestedDay.date,
             suggestedDayLabel: suggestedDay.label,
             servings: 1
         });
-        
-        // Snack
+
         const snack = snackOptions[dayIndex % snackOptions.length];
         newMeals.push({
             id: Date.now() + (dayIndex * 4) + 3,
             name: snack.name,
             time: '3:00 PM',
             description: snack.desc,
-            calories: Math.round(userProfile.dailyCalories * 0.1),
-            carbs: Math.round(userProfile.macros.carbs * 0.1),
-            protein: Math.round(userProfile.macros.protein * 0.1),
-            fat: Math.round(userProfile.macros.fat * 0.1),
+            calories: Math.round(parsed.calories * 0.10),
+            carbs: Math.round(parsed.carbs * 0.10),
+            protein: Math.round(parsed.protein * 0.10),
+            fat: Math.round(parsed.fat * 0.10),
             ingredients: snack.ingredients,
             suggestedDay: suggestedDay.date,
             suggestedDayLabel: suggestedDay.label,
             servings: 1
         });
     }
-    
+
     generatedMeals = newMeals;
     saveGeneratedMeals();
     updateGeneratedMealsDisplay();
     generateShoppingList();
-    addChatMessage('Generated a week of delicious meals! Each meal shows what you\'ll be eating with real food descriptions. Days are pre-selected - just click "Quick Assign All" or individually assign/remove meals you don\'t want.', 'assistant');
+    addChatMessage(`Generated a ${parsed.days}-day meal plan around ${parsed.calories} calories and ${parsed.protein}g protein per day. Review it, then assign it.`, 'assistant');
 }
 
 function updateGeneratedMealsDisplay() {
@@ -3583,7 +3642,7 @@ function updateGeneratedMealsDisplay() {
     container.innerHTML = generatedMeals.map(meal => `
         <div class="meal-card unassigned">
             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
-                <h4>${meal.name}</h4>
+                <h4>${normalizeMealName(meal.name)}</h4>
                 <span style="background: #E3F2FD; color: #1976D2; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">
                     ${meal.suggestedDayLabel}
                 </span>
@@ -3619,16 +3678,19 @@ function getNext7Days() {
 function assignMealToDay(mealId) {
     const meal = generatedMeals.find(m => m.id === mealId);
     const selectedDate = document.getElementById(`day-${mealId}`).value;
-    
+
     if (!meal) return;
-    
+
+    assignedMeals = assignedMeals.filter(m => !(m.date === selectedDate && normalizeMealName(m.name) === normalizeMealName(meal.name) && (m.time || '') === (meal.time || '') && !m.completed));
     assignedMeals.push({
         ...meal,
+        id: meal.id || (Date.now() + Math.floor(Math.random() * 100000)),
         date: selectedDate,
         completed: false,
         servings: 1
     });
-    
+
+    cleanupAssignedMeals();
     generatedMeals = generatedMeals.filter(m => m.id !== mealId);
     saveGeneratedMeals();
     saveMeals();
@@ -3647,24 +3709,29 @@ function removeMeal(mealId) {
 
 function quickAssignAll() {
     if (generatedMeals.length === 0) return;
-    
-    if (confirm(`Assign all ${generatedMeals.length} meals to their suggested days?`)) {
+
+    if (confirm(`Replace your upcoming meal plan with these ${generatedMeals.length} meals?`)) {
+        removeFuturePlannedMeals();
+        cleanupAssignedMeals();
+
         generatedMeals.forEach(meal => {
             assignedMeals.push({
                 ...meal,
+                id: meal.id || (Date.now() + Math.floor(Math.random() * 100000)),
                 date: meal.suggestedDay,
                 completed: false,
                 servings: 1
             });
         });
-        
+
+        cleanupAssignedMeals();
         generatedMeals = [];
         saveGeneratedMeals();
         saveMeals();
         updateGeneratedMealsDisplay();
         updateWeekView();
         updateDashboard();
-        alert('All meals assigned! Check your Week View.');
+        alert('Upcoming meal plan replaced.');
     }
 }
 
@@ -3769,7 +3836,7 @@ function updateWeekView() {
                     return `
                     <div class="meal-card ${meal.completed ? 'completed' : ''}" style="margin-bottom: 10px;">
                         <div style="margin-bottom: 8px;">
-                            <strong style="display: block;">${meal.name}</strong>
+                            <strong style="display: block;">${normalizeMealName(meal.name)}</strong>
                             <span style="font-size: 12px; color: #666;">${meal.time || ''}</span>
                         </div>
                         ${!meal.completed ? `
