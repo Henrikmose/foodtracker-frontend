@@ -1116,7 +1116,7 @@
                 </div>
 
                 <div class="card">
-                    <h3>Today's Meals</h3>
+                    <h3>Meals for Selected Date</h3>
                     <div id="today-meals"></div>
                 </div>
 
@@ -2815,6 +2815,8 @@ function displaySearchResults(foods) {
             </div>
         `;
     }).join('');
+
+    container.innerHTML = foodsHtml + mealsHtml;
 }
 
 async function searchByBarcodeManual() {
@@ -3302,9 +3304,9 @@ function updateFoodLogDisplay() {
 }
 
 function updateDashboard() {
-    const today = new Date().toISOString().split('T')[0];
-    const todayFoods = foodLog.filter(food => food.date === today);
-    const todayMeals = assignedMeals.filter(meal => meal.date === today);
+    const selectedDate = currentViewDate || new Date().toISOString().split('T')[0];
+    const todayFoods = foodLog.filter(food => food.date === selectedDate);
+    const todayMeals = assignedMeals.filter(meal => meal.date === selectedDate);
     
     // Calculate actual (eaten) macros
     let actualCalories = 0, actualCarbs = 0, actualProtein = 0, actualFat = 0;
@@ -3413,16 +3415,32 @@ function displayUpcomingMacros() {
 }
 
 function displayTodayMeals() {
-    const today = new Date().toISOString().split('T')[0];
-    const todayMeals = assignedMeals.filter(meal => meal.date === today);
+    const selectedDate = currentViewDate || new Date().toISOString().split('T')[0];
+    const selectedFoods = foodLog.filter(food => food.date === selectedDate);
+    const selectedMeals = assignedMeals.filter(meal => meal.date === selectedDate);
     const container = document.getElementById('today-meals');
-    
-    if (todayMeals.length === 0) {
-        container.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">No meals planned today. Go to AI Meal Planner!</p>';
+
+    if (selectedFoods.length === 0 && selectedMeals.length === 0) {
+        container.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">No foods or meals for this date yet.</p>';
         return;
     }
-    
-    container.innerHTML = todayMeals.map(meal => {
+
+    const foodsHtml = selectedFoods.map(food => `
+        <div class="meal-card completed">
+            <div class="meal-header">
+                <div>
+                    <h4>${food.name}</h4>
+                    <div class="meal-time">Logged at ${food.timestamp || ''}</div>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <span style="color:#666; font-size:14px;">${food.servings || 1} serving${(food.servings || 1) !== 1 ? 's' : ''}</span>
+                </div>
+            </div>
+            <p style="margin-top: 8px; color: #666;">${Math.round(food.calories)} cal | C: ${Math.round((food.carbs || 0) * 10) / 10}g | P: ${Math.round((food.protein || 0) * 10) / 10}g | F: ${Math.round((food.fat || 0) * 10) / 10}g</p>
+        </div>
+    `).join('');
+
+    const mealsHtml = selectedMeals.map(meal => {
         const servings = meal.servings || 1;
         const displayCals = Math.round(meal.calories * servings);
         const displayCarbs = Math.round(meal.carbs * servings * 10) / 10;
@@ -4031,22 +4049,41 @@ async function sendHealthMessage() {
     const input = document.getElementById('health-chat-input');
     const message = input.value.trim();
     if (!message) return;
-    
+
     addHealthChatMessage(message, 'user');
     input.value = '';
-    
+
     const sendBtn = document.getElementById('health-send-btn');
     const originalText = sendBtn.textContent;
     sendBtn.disabled = true;
     sendBtn.textContent = 'Thinking...';
-    
+
     try {
-        const response = await callOpenAIHealthAssistant(message);
-        addHealthChatMessage(response.text, 'assistant');
-        extractPreferences(response.text);
+        let result;
+        if (looksLikeFreeformFoodLog(message)) {
+            result = {
+                text: 'I turned that into a loggable food entry for you. Confirm below.',
+                payload: parseFreeformFoodLog(message)
+            };
+        } else {
+            result = await callOpenAIHealthAssistant(message);
+        }
+
+        addHealthChatMessage(result.text, 'assistant');
+
+        if (result.payload) {
+            const container = document.getElementById('health-chat-container');
+            const card = renderAiPayloadCard(result.payload);
+            if (card) {
+                container.appendChild(card);
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+
+        extractPreferences(result.text);
     } catch (error) {
         console.error('Health Assistant error:', error);
-        addHealthChatMessage('Sorry, I ran into an error talking to the assistant. Please check that your Render backend is live and your OPENAI_API_KEY is set in Render.', 'assistant');
+        addHealthChatMessage('Sorry, I hit an error talking to the assistant. Please check that your Render backend is live and your OPENAI_API_KEY is set.', 'assistant');
     } finally {
         sendBtn.disabled = false;
         sendBtn.textContent = originalText;
@@ -4138,17 +4175,18 @@ function renderAiPayloadCard(payload) {
         const wrapper = document.createElement('div');
         wrapper.className = 'ai-action-card';
         wrapper.id = cardId;
+        const mealsWithIds = plan.meals.map((meal, idx) => ({...meal, __rowId: `${cardId}-row-${idx}`}));
         wrapper.innerHTML = `
             <h4>${escapeHtml(plan.title || 'Daily Plan')}</h4>
             <div class="tiny" style="margin-bottom:8px;">Preview before adding</div>
-            ${plan.meals.map((meal, idx) => `
-                <div style="padding:10px 0; border-top:${idx === 0 ? 'none' : '1px solid #E0E0E0'};">
+            ${mealsWithIds.map((meal, idx) => `
+                <div id="${meal.__rowId}" style="padding:10px 0; border-top:${idx === 0 ? 'none' : '1px solid #E0E0E0'};">
                     <strong>${escapeHtml(meal.time || 'Meal')}</strong> — ${escapeHtml(meal.name || 'Suggested meal')}
                     ${(meal.ingredients && meal.ingredients.length) ? `<ul style="margin-top:6px;">${meal.ingredients.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>` : ''}
                     <div class="macro-line">${Math.round(meal.calories || 0)} cal | C: ${Math.round((meal.carbs || 0) * 10) / 10}g | P: ${Math.round((meal.protein || 0) * 10) / 10}g | F: ${Math.round((meal.fat || 0) * 10) / 10}g</div>
                     <div class="ai-action-actions" style="margin-bottom:4px;">
-                        <button class="btn btn-sm" onclick='addAiMealToLog(${JSON.stringify(meal)}, "${cardId}")'>Add to Log</button>
-                        <button class="btn btn-sm btn-secondary" onclick='addAiMealToPlan(${JSON.stringify(meal)}, "${cardId}")'>Add to Plan</button>
+                        <button class="btn btn-sm" onclick='addAiMealToLog(${JSON.stringify(meal)}, "${meal.__rowId}")'>Add to Log</button>
+                        <button class="btn btn-sm btn-secondary" onclick='addAiMealToPlan(${JSON.stringify(meal)}, "${meal.__rowId}")'>Add to Plan</button>
                     </div>
                 </div>
             `).join('')}
@@ -4165,7 +4203,12 @@ function renderAiPayloadCard(payload) {
 function collapseAiActionCard(cardId, actionLabel, mealSummary) {
     const card = document.getElementById(cardId);
     if (!card) return;
-    card.className = 'ai-action-card collapsed';
+    if (card.classList.contains('ai-action-card')) {
+        card.className = 'ai-action-card collapsed';
+    } else {
+        card.style.borderTop = 'none';
+        card.style.padding = '8px 0';
+    }
     card.innerHTML = `
         <h4>${actionLabel}</h4>
         <div class="tiny">${mealSummary}</div>
@@ -4183,27 +4226,13 @@ function addAiMealToLog(meal, cardId = null) {
     const date = chooseActionDate(currentViewDate);
     if (!date) return;
 
-    const ingredientsText = (meal.ingredients && meal.ingredients.length)
-        ? ` (${meal.ingredients.join(', ')})`
-        : '';
-
-    foodLog.push({
-        id: Date.now() + Math.floor(Math.random() * 100000),
-        date,
-        name: `${meal.name || 'Suggested Meal'}${ingredientsText}`,
-        caloriesPerServing: Number(meal.calories || 0),
-        carbsPerServing: Number(meal.carbs || 0),
-        proteinPerServing: Number(meal.protein || 0),
-        fatPerServing: Number(meal.fat || 0),
-        servings: 1,
-        calories: Number(meal.calories || 0),
-        carbs: Number(meal.carbs || 0),
-        protein: Number(meal.protein || 0),
-        fat: Number(meal.fat || 0),
-        timestamp: new Date().toLocaleTimeString()
-    });
+    foodLog.push(buildMealLogEntry(meal, date));
 
     saveFoodLog();
+    currentViewDate = date;
+    const dateInput = document.getElementById('view-date');
+    if (dateInput) dateInput.value = currentViewDate;
+    updateDateLabel();
     updateFoodLogDisplay();
     updateDashboard();
     collapseAiActionCard(
@@ -4217,23 +4246,15 @@ function addAiMealToPlan(meal, cardId = null) {
     const date = chooseActionDate(currentViewDate);
     if (!date) return;
 
-    assignedMeals.push({
-        id: Date.now() + Math.floor(Math.random() * 100000),
-        date,
-        name: meal.name || 'Suggested Meal',
-        time: meal.time || 'Flexible',
-        description: (meal.ingredients && meal.ingredients.length) ? meal.ingredients.join(', ') : (meal.description || ''),
-        calories: Number(meal.calories || 0),
-        carbs: Number(meal.carbs || 0),
-        protein: Number(meal.protein || 0),
-        fat: Number(meal.fat || 0),
-        ingredients: meal.ingredients || [],
-        completed: false,
-        servings: 1
-    });
+    assignedMeals = assignedMeals.filter(existing => !(existing.date === date && existing.name === (meal.name || 'Suggested Meal') && (existing.time || '') === (meal.time || 'Flexible') && !existing.completed));
+    assignedMeals.push(buildPlannedMealEntry(meal, date));
 
     cleanupAssignedMeals();
     saveMeals();
+    currentViewDate = date;
+    const dateInput = document.getElementById('view-date');
+    if (dateInput) dateInput.value = currentViewDate;
+    updateDateLabel();
     updateWeekView();
     updateDashboard();
     collapseAiActionCard(
@@ -4249,24 +4270,16 @@ function addAiFullPlanToPlan(meals, cardId = null) {
     if (!date) return;
 
     meals.forEach((meal, index) => {
-        assignedMeals.push({
-            id: Date.now() + index + Math.floor(Math.random() * 100000),
-            date,
-            name: meal.name || 'Suggested Meal',
-            time: meal.time || `Meal ${index + 1}`,
-            description: (meal.ingredients && meal.ingredients.length) ? meal.ingredients.join(', ') : (meal.description || ''),
-            calories: Number(meal.calories || 0),
-            carbs: Number(meal.carbs || 0),
-            protein: Number(meal.protein || 0),
-            fat: Number(meal.fat || 0),
-            ingredients: meal.ingredients || [],
-            completed: false,
-            servings: 1
-        });
+        assignedMeals = assignedMeals.filter(existing => !(existing.date === date && existing.name === (meal.name || 'Suggested Meal') && (existing.time || '') === (meal.time || `Meal ${index + 1}`) && !existing.completed));
+        assignedMeals.push(buildPlannedMealEntry(meal, date, index));
     });
 
     cleanupAssignedMeals();
     saveMeals();
+    currentViewDate = date;
+    const dateInput = document.getElementById('view-date');
+    if (dateInput) dateInput.value = currentViewDate;
+    updateDateLabel();
     updateWeekView();
     updateDashboard();
     collapseAiActionCard(
@@ -4274,6 +4287,89 @@ function addAiFullPlanToPlan(meals, cardId = null) {
         `📅 Added Full Plan (${date})`,
         `${meals.length} meal${meals.length === 1 ? '' : 's'} added to your plan`
     );
+}
+
+function buildMealLogEntry(meal, date) {
+    const ingredientsText = (meal.ingredients && meal.ingredients.length)
+        ? ` (${meal.ingredients.join(', ')})`
+        : '';
+
+    return {
+        id: Date.now() + Math.floor(Math.random() * 100000),
+        date,
+        name: `${meal.name || 'Suggested Meal'}${ingredientsText}`,
+        caloriesPerServing: Number(meal.calories || 0),
+        carbsPerServing: Number(meal.carbs || 0),
+        proteinPerServing: Number(meal.protein || 0),
+        fatPerServing: Number(meal.fat || 0),
+        servings: 1,
+        calories: Number(meal.calories || 0),
+        carbs: Number(meal.carbs || 0),
+        protein: Number(meal.protein || 0),
+        fat: Number(meal.fat || 0),
+        timestamp: new Date().toLocaleTimeString()
+    };
+}
+
+function buildPlannedMealEntry(meal, date, index = 0) {
+    return {
+        id: Date.now() + index + Math.floor(Math.random() * 100000),
+        date,
+        name: meal.name || 'Suggested Meal',
+        time: meal.time || 'Flexible',
+        description: (meal.ingredients && meal.ingredients.length) ? meal.ingredients.join(', ') : (meal.description || ''),
+        calories: Number(meal.calories || 0),
+        carbs: Number(meal.carbs || 0),
+        protein: Number(meal.protein || 0),
+        fat: Number(meal.fat || 0),
+        ingredients: meal.ingredients || [],
+        completed: false,
+        servings: 1
+    };
+}
+
+function looksLikeFreeformFoodLog(message) {
+    const msg = String(message || '').toLowerCase();
+    const hasIntent = /(add( it)? to (the )?log|log (it|this|that)|i (just )?(had|ate|drank)|can you add)/.test(msg);
+    const hasCalories = /\b\d+(\.\d+)?\s*(cal|calories)\b/.test(msg);
+    const hasMacro = /\b\d+(\.\d+)?\s*g\s*(of\s*)?(protein|carbs|fat)\b/.test(msg);
+    return hasIntent && (hasCalories || hasMacro);
+}
+
+function parseFreeformFoodLog(message) {
+    const raw = String(message || '');
+    const lower = raw.toLowerCase();
+
+    const calories = Number((lower.match(/(\d+(?:\.\d+)?)\s*(?:cal|calories)\b/) || [])[1] || 0);
+    const protein = Number((lower.match(/(\d+(?:\.\d+)?)\s*g\s*(?:of\s*)?protein\b/) || [])[1] || 0);
+    const carbs = Number((lower.match(/(\d+(?:\.\d+)?)\s*g\s*(?:of\s*)?carbs?\b/) || [])[1] || 0);
+    const fat = Number((lower.match(/(\d+(?:\.\d+)?)\s*(?:g\s*)?(?:of\s*)?fat\b/) || [])[1] || 0);
+
+    let name = raw
+        .replace(/can you add.*$/i, '')
+        .replace(/add it to the log.*$/i, '')
+        .replace(/add to the log.*$/i, '')
+        .replace(/i\s*(just)?\s*(had|ate|drank)\s*/i, '')
+        .replace(/it has.*$/i, '')
+        .replace(/with.*$/i, '')
+        .trim();
+
+    name = name.replace(/[.,]+$/,'').trim();
+    if (!name) name = 'Custom Food';
+
+    return {
+        type: 'meal_suggestion',
+        title: 'Confirm food log',
+        meal: {
+            name: name.charAt(0).toUpperCase() + name.slice(1),
+            time: 'Logged food',
+            ingredients: [],
+            calories,
+            protein,
+            carbs,
+            fat
+        }
+    };
 }
 
 function parseAiPayload(rawText) {
@@ -4355,7 +4451,10 @@ Important response rules:
 }
 \`\`\`
 
-- If no structured action is needed, do NOT include JSON.
+- If the user asks what to eat, asks for a meal plan, asks for food ideas, asks what to eat before an event/workout, or asks to add something they ate, you MUST include JSON.
+- If the user describes a food they already ate with macros or calories, return a meal_suggestion JSON block so the UI can show Add to Log.
+- If the user asks for a multi-meal day plan, return a daily_plan JSON block.
+- Only return plain text without JSON for non-food informational questions.
 - Keep ingredient lists simple.
 - Make macros realistic and rounded.`
         },
