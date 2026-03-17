@@ -985,7 +985,35 @@
                 width: 100%;
             }
         }
-    </style>
+    
+    .ai-action-card{
+        margin-top:12px;
+        background:#F8FFF8;
+        border:1px solid #C8E6C9;
+        border-radius:12px;
+        padding:12px;
+    }
+    .ai-action-card h4{
+        margin:0 0 8px 0;
+        color:#2E7D32;
+    }
+    .ai-action-card ul{
+        margin:6px 0 10px 18px;
+        color:#555;
+    }
+    .ai-action-card .macro-line{
+        font-size:13px;
+        color:#444;
+        margin-bottom:10px;
+        font-weight:600;
+    }
+    .ai-action-actions{
+        display:flex;
+        gap:8px;
+        flex-wrap:wrap;
+    }
+
+</style>
 </head>
 <body>
     <div class="container">
@@ -4025,31 +4053,217 @@ async function sendHealthMessage() {
     }
 }
 
+
 function askHealthQuestion(question) {
     document.getElementById('health-chat-input').value = question;
     sendHealthMessage();
 }
 
-function addHealthChatMessage(message, type) {
+async function sendHealthMessage() {
+    const input = document.getElementById('health-chat-input');
+    const message = input.value.trim();
+    if (!message) return;
+
+    addHealthChatMessage(message, 'user');
+    input.value = '';
+
+    const sendBtn = document.getElementById('health-send-btn');
+    const originalText = sendBtn.textContent;
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Thinking...';
+
+    try {
+        const response = await callOpenAIHealthAssistant(message);
+        addHealthChatMessage(response.text, 'assistant', response.payload);
+        extractPreferences(response.text);
+    } catch (error) {
+        console.error('Health Assistant error:', error);
+        addHealthChatMessage('Sorry, I ran into an error talking to the coach. Please check that your backend is live.', 'assistant');
+    } finally {
+        sendBtn.disabled = false;
+        sendBtn.textContent = originalText;
+    }
+}
+
+function addHealthChatMessage(message, type, payload = null) {
     const container = document.getElementById('health-chat-container');
     const messageDiv = document.createElement('div');
     messageDiv.className = `chat-message ${type}`;
-    
+
     if (type === 'assistant') {
         const formattedMessage = String(message || '')
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .split('\n\n').join('</p><p>')
             .split('\n').join('<br>');
         messageDiv.innerHTML = `<p><strong>Health Assistant:</strong></p><p>${formattedMessage}</p>`;
+
+        if (payload && payload.type && payload.type !== 'general') {
+            const card = renderAiPayloadCard(payload);
+            if (card) messageDiv.appendChild(card);
+        }
     } else {
-        messageDiv.innerHTML = `<p><strong>You:</strong> ${message}</p>`;
+        messageDiv.innerHTML = `<p><strong>You:</strong> ${escapeHtml(message)}</p>`;
     }
-    
+
     container.appendChild(messageDiv);
     container.scrollTop = container.scrollHeight;
-    
+
     healthChatHistory.push({ role: type === 'user' ? 'user' : 'assistant', content: message });
     saveHealthChatHistory();
+}
+
+function renderAiPayloadCard(payload) {
+    if (payload.type === 'meal_suggestion' && payload.meal) {
+        const meal = payload.meal;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'ai-action-card';
+        wrapper.innerHTML = `
+            <h4>${escapeHtml(meal.name || 'Suggested Meal')}</h4>
+            <div class="tiny" style="margin-bottom:8px;">${escapeHtml(meal.time || payload.title || 'Suggested meal')}</div>
+            ${(meal.ingredients && meal.ingredients.length) ? `<ul>${meal.ingredients.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>` : ''}
+            <div class="macro-line">${Math.round(meal.calories || 0)} cal | C: ${Math.round((meal.carbs || 0) * 10) / 10}g | P: ${Math.round((meal.protein || 0) * 10) / 10}g | F: ${Math.round((meal.fat || 0) * 10) / 10}g</div>
+            <div class="ai-action-actions">
+                <button class="btn btn-sm" onclick='addAiMealToLog(${JSON.stringify(meal)})'>Add to Log</button>
+                <button class="btn btn-sm btn-secondary" onclick='addAiMealToPlan(${JSON.stringify(meal)})'>Add to Plan</button>
+            </div>
+        `;
+        return wrapper;
+    }
+
+    if (payload.type === 'daily_plan' && payload.plan && Array.isArray(payload.plan.meals)) {
+        const plan = payload.plan;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'ai-action-card';
+        wrapper.innerHTML = `
+            <h4>${escapeHtml(plan.title || 'Daily Plan')}</h4>
+            <div class="tiny" style="margin-bottom:8px;">Preview before adding</div>
+            ${plan.meals.map((meal, idx) => `
+                <div style="padding:10px 0; border-top:${idx === 0 ? 'none' : '1px solid #E0E0E0'};">
+                    <strong>${escapeHtml(meal.time || 'Meal')}</strong> — ${escapeHtml(meal.name || 'Suggested meal')}
+                    ${(meal.ingredients && meal.ingredients.length) ? `<ul style="margin-top:6px;">${meal.ingredients.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>` : ''}
+                    <div class="macro-line">${Math.round(meal.calories || 0)} cal | C: ${Math.round((meal.carbs || 0) * 10) / 10}g | P: ${Math.round((meal.protein || 0) * 10) / 10}g | F: ${Math.round((meal.fat || 0) * 10) / 10}g</div>
+                    <div class="ai-action-actions" style="margin-bottom:4px;">
+                        <button class="btn btn-sm" onclick='addAiMealToLog(${JSON.stringify(meal)})'>Add to Log</button>
+                        <button class="btn btn-sm btn-secondary" onclick='addAiMealToPlan(${JSON.stringify(meal)})'>Add to Plan</button>
+                    </div>
+                </div>
+            `).join('')}
+            <div class="ai-action-actions" style="margin-top:10px;">
+                <button class="btn btn-sm" onclick='addAiFullPlanToPlan(${JSON.stringify(plan.meals)})'>Add Full Plan</button>
+            </div>
+        `;
+        return wrapper;
+    }
+
+    return null;
+}
+
+function chooseActionDate(defaultDate = null) {
+    const suggested = defaultDate || currentViewDate || new Date().toISOString().split('T')[0];
+    const chosen = window.prompt('Enter date as YYYY-MM-DD', suggested);
+    if (!chosen) return null;
+    return chosen;
+}
+
+function addAiMealToLog(meal) {
+    const date = chooseActionDate(currentViewDate);
+    if (!date) return;
+
+    const ingredientsText = (meal.ingredients && meal.ingredients.length)
+        ? ` (${meal.ingredients.join(', ')})`
+        : '';
+
+    foodLog.push({
+        id: Date.now() + Math.floor(Math.random() * 100000),
+        date,
+        name: `${meal.name || 'Suggested Meal'}${ingredientsText}`,
+        caloriesPerServing: Number(meal.calories || 0),
+        carbsPerServing: Number(meal.carbs || 0),
+        proteinPerServing: Number(meal.protein || 0),
+        fatPerServing: Number(meal.fat || 0),
+        servings: 1,
+        calories: Number(meal.calories || 0),
+        carbs: Number(meal.carbs || 0),
+        protein: Number(meal.protein || 0),
+        fat: Number(meal.fat || 0),
+        timestamp: new Date().toLocaleTimeString()
+    });
+
+    saveFoodLog();
+    updateFoodLogDisplay();
+    updateDashboard();
+    alert('Added to food log');
+}
+
+function addAiMealToPlan(meal) {
+    const date = chooseActionDate(currentViewDate);
+    if (!date) return;
+
+    assignedMeals.push({
+        id: Date.now() + Math.floor(Math.random() * 100000),
+        date,
+        name: meal.name || 'Suggested Meal',
+        time: meal.time || 'Flexible',
+        description: (meal.ingredients && meal.ingredients.length) ? meal.ingredients.join(', ') : (meal.description || ''),
+        calories: Number(meal.calories || 0),
+        carbs: Number(meal.carbs || 0),
+        protein: Number(meal.protein || 0),
+        fat: Number(meal.fat || 0),
+        ingredients: meal.ingredients || [],
+        completed: false,
+        servings: 1
+    });
+
+    cleanupAssignedMeals();
+    saveMeals();
+    updateWeekView();
+    updateDashboard();
+    alert('Added to meal plan');
+}
+
+function addAiFullPlanToPlan(meals) {
+    if (!Array.isArray(meals) || !meals.length) return;
+    const date = chooseActionDate(currentViewDate);
+    if (!date) return;
+
+    meals.forEach((meal, index) => {
+        assignedMeals.push({
+            id: Date.now() + index + Math.floor(Math.random() * 100000),
+            date,
+            name: meal.name || 'Suggested Meal',
+            time: meal.time || `Meal ${index + 1}`,
+            description: (meal.ingredients && meal.ingredients.length) ? meal.ingredients.join(', ') : (meal.description || ''),
+            calories: Number(meal.calories || 0),
+            carbs: Number(meal.carbs || 0),
+            protein: Number(meal.protein || 0),
+            fat: Number(meal.fat || 0),
+            ingredients: meal.ingredients || [],
+            completed: false,
+            servings: 1
+        });
+    });
+
+    cleanupAssignedMeals();
+    saveMeals();
+    updateWeekView();
+    updateDashboard();
+    alert('Full plan added to meal plan');
+}
+
+function parseAiPayload(rawText) {
+    const text = String(rawText || '');
+    const match = text.match(/```json\s*([\s\S]*?)```/i);
+    if (!match) return { text: text.trim(), payload: null };
+
+    let payload = null;
+    try {
+        payload = JSON.parse(match[1].trim());
+    } catch (e) {
+        payload = null;
+    }
+
+    const cleaned = text.replace(match[0], '').trim();
+    return { text: cleaned, payload };
 }
 
 async function callOpenAIHealthAssistant(userMessage) {
@@ -4072,7 +4286,52 @@ Your job:
 - when useful, suggest foods that fit their goals
 - when appropriate, suggest what to eat next based on remaining macros
 - keep responses concise but useful
-- use bullet points when helpful`
+
+Important response rules:
+- Always start with a normal human-friendly answer.
+- If you suggest ONE specific meal/snack, append a JSON block in markdown format like this:
+
+\`\`\`json
+{
+  "type": "meal_suggestion",
+  "title": "Protein snack suggestion",
+  "meal": {
+    "name": "Greek Yogurt Protein Bowl",
+    "time": "Snack",
+    "ingredients": ["Greek yogurt", "oatmeal", "honey"],
+    "calories": 320,
+    "protein": 28,
+    "carbs": 35,
+    "fat": 4
+  }
+}
+\`\`\`
+
+- If the user asks for a full-day plan, append a JSON block like this:
+
+\`\`\`json
+{
+  "type": "daily_plan",
+  "plan": {
+    "title": "Hockey Day Plan",
+    "meals": [
+      {
+        "name": "Breakfast Name",
+        "time": "7:30 AM",
+        "ingredients": ["ingredient 1", "ingredient 2"],
+        "calories": 400,
+        "protein": 30,
+        "carbs": 45,
+        "fat": 10
+      }
+    ]
+  }
+}
+\`\`\`
+
+- If no structured action is needed, do NOT include JSON.
+- Keep ingredient lists simple.
+- Make macros realistic and rounded.`
         },
         {
             role: 'system',
@@ -4092,7 +4351,7 @@ Your job:
         },
         body: JSON.stringify({
             messages,
-            max_tokens: 900,
+            max_tokens: 1200,
             temperature: 0.7
         })
     });
@@ -4103,8 +4362,8 @@ Your job:
     }
 
     const data = await response.json();
-    const text = data?.choices?.[0]?.message?.content || 'Sorry, I could not generate a response.';
-    return { text };
+    const rawText = data?.choices?.[0]?.message?.content || 'Sorry, I could not generate a response.';
+    return parseAiPayload(rawText);
 }
 
 function buildHealthContext() {
@@ -4178,6 +4437,16 @@ Remaining for today:
     context += `- Fat remaining: ${Math.round(remainingFat)}g
 `;
 
+    if (todayFoods.length) {
+        context += `
+Today's logged foods:
+`;
+        context += todayFoods.map(f => `- ${f.name}: ${Math.round(f.calories)} cal, ${Math.round(f.protein)}g protein, ${Math.round(f.carbs)}g carbs, ${Math.round(f.fat)}g fat`).join(`
+`);
+        context += `
+`;
+    }
+
     return context;
 }
 
@@ -4185,29 +4454,29 @@ function extractPreferences(response) {
     const keywords = [
         'ginger', 'turmeric', 'beet', 'beets', 'garlic', 'spinach', 'kale',
         'salmon', 'avocado', 'blueberries', 'blueberry', 'eggs', 'chicken',
-        'omega-3', 'omega 3', 'vitamin d', 'vitamin c', 'probiotics', 'green tea', 
-        'cinnamon', 'honey', 'nuts', 'almonds', 'walnuts', 'sweet potato', 
-        'quinoa', 'oats', 'oatmeal', 'greek yogurt', 'broccoli', 'tomatoes', 
+        'omega-3', 'omega 3', 'vitamin d', 'vitamin c', 'probiotics', 'green tea',
+        'cinnamon', 'honey', 'nuts', 'almonds', 'walnuts', 'sweet potato',
+        'quinoa', 'oats', 'oatmeal', 'greek yogurt', 'broccoli', 'tomatoes',
         'chia seeds', 'flax seeds', 'banana', 'bananas', 'leafy greens',
         'olive oil', 'dark chocolate', 'berries', 'lentils', 'beans'
     ];
-    
+
     const foundItems = [];
-    const lowerResponse = (response || '').toLowerCase();
-    
+    const lowerResponse = String(response || '').toLowerCase();
+
     keywords.forEach(keyword => {
         if (lowerResponse.includes(keyword)) {
-            const capitalized = keyword.split(' ').map(word => 
+            const capitalized = keyword.split(' ').map(word =>
                 word.charAt(0).toUpperCase() + word.slice(1)
             ).join(' ');
-            
-            if (!detectedPreferences.includes(capitalized) && 
+
+            if (!detectedPreferences.includes(capitalized) &&
                 !(userProfile.healthPreferences && userProfile.healthPreferences.includes(capitalized))) {
                 foundItems.push(capitalized);
             }
         }
     });
-    
+
     if (foundItems.length > 0) {
         detectedPreferences.push(...foundItems);
         detectedPreferences = [...new Set(detectedPreferences)];
@@ -4218,14 +4487,14 @@ function extractPreferences(response) {
 function displayPreferenceBadges() {
     const container = document.getElementById('preference-badges');
     if (!container) return;
-    
+
     const allPreferences = [...new Set([...detectedPreferences, ...(userProfile.healthPreferences || [])])];
-    
+
     if (allPreferences.length === 0) {
-        container.innerHTML = '<p style="color: #999; font-style: italic;">No preferences yet. Chat with the Health Assistant about foods you\'re interested in!</p>';
+        container.innerHTML = '<p style="color: #999; font-style: italic;">No preferences yet. Chat with the coach about foods you want included.</p>';
         return;
     }
-    
+
     container.innerHTML = allPreferences.map(pref => `
         <span class="preference-badge" onclick="removePreference('${pref}')">
             ${pref}
@@ -4247,13 +4516,12 @@ function savePreferencesToProfile() {
     if (!userProfile.healthPreferences) {
         userProfile.healthPreferences = [];
     }
-    userProfile.healthPreferences = [
-        ...new Set([...userProfile.healthPreferences, ...detectedPreferences])
-    ];
+
+    userProfile.healthPreferences = [...new Set([...userProfile.healthPreferences, ...detectedPreferences])];
     detectedPreferences = [];
     saveProfile();
     displayPreferenceBadges();
-    alert('✅ Health preferences saved! These can now be used later in planning.');
+    alert('Health preferences saved!');
 }
 
 function saveHealthChatHistory() {
@@ -4262,27 +4530,6 @@ function saveHealthChatHistory() {
     } else {
         localStorage.setItem('healthChatHistory', JSON.stringify(healthChatHistory));
         localStorage.setItem('detectedPreferences', JSON.stringify(detectedPreferences));
-    }
-}
-
-function loadHealthPreferences() {
-    const savedHistory = localStorage.getItem('healthChatHistory');
-    const savedPrefs = localStorage.getItem('detectedPreferences');
-    
-    if (savedHistory) {
-        try {
-            healthChatHistory = JSON.parse(savedHistory);
-        } catch (e) {
-            console.error('Error loading health chat history:', e);
-        }
-    }
-    
-    if (savedPrefs) {
-        try {
-            detectedPreferences = JSON.parse(savedPrefs);
-        } catch (e) {
-            console.error('Error loading detected preferences:', e);
-        }
     }
 }
 
