@@ -4113,18 +4113,21 @@ function addHealthChatMessage(message, type, payload = null) {
 }
 
 function renderAiPayloadCard(payload) {
+    const cardId = 'ai-card-' + Date.now() + '-' + Math.floor(Math.random() * 100000);
+
     if (payload.type === 'meal_suggestion' && payload.meal) {
         const meal = payload.meal;
         const wrapper = document.createElement('div');
         wrapper.className = 'ai-action-card';
+        wrapper.id = cardId;
         wrapper.innerHTML = `
             <h4>${escapeHtml(meal.name || 'Suggested Meal')}</h4>
             <div class="tiny" style="margin-bottom:8px;">${escapeHtml(meal.time || payload.title || 'Suggested meal')}</div>
             ${(meal.ingredients && meal.ingredients.length) ? `<ul>${meal.ingredients.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>` : ''}
             <div class="macro-line">${Math.round(meal.calories || 0)} cal | C: ${Math.round((meal.carbs || 0) * 10) / 10}g | P: ${Math.round((meal.protein || 0) * 10) / 10}g | F: ${Math.round((meal.fat || 0) * 10) / 10}g</div>
             <div class="ai-action-actions">
-                <button class="btn btn-sm" onclick='addAiMealToLog(${JSON.stringify(meal)})'>Add to Log</button>
-                <button class="btn btn-sm btn-secondary" onclick='addAiMealToPlan(${JSON.stringify(meal)})'>Add to Plan</button>
+                <button class="btn btn-sm" onclick='addAiMealToLog(${JSON.stringify(meal)}, "${cardId}")'>Add to Log</button>
+                <button class="btn btn-sm btn-secondary" onclick='addAiMealToPlan(${JSON.stringify(meal)}, "${cardId}")'>Add to Plan</button>
             </div>
         `;
         return wrapper;
@@ -4134,6 +4137,7 @@ function renderAiPayloadCard(payload) {
         const plan = payload.plan;
         const wrapper = document.createElement('div');
         wrapper.className = 'ai-action-card';
+        wrapper.id = cardId;
         wrapper.innerHTML = `
             <h4>${escapeHtml(plan.title || 'Daily Plan')}</h4>
             <div class="tiny" style="margin-bottom:8px;">Preview before adding</div>
@@ -4143,19 +4147,29 @@ function renderAiPayloadCard(payload) {
                     ${(meal.ingredients && meal.ingredients.length) ? `<ul style="margin-top:6px;">${meal.ingredients.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>` : ''}
                     <div class="macro-line">${Math.round(meal.calories || 0)} cal | C: ${Math.round((meal.carbs || 0) * 10) / 10}g | P: ${Math.round((meal.protein || 0) * 10) / 10}g | F: ${Math.round((meal.fat || 0) * 10) / 10}g</div>
                     <div class="ai-action-actions" style="margin-bottom:4px;">
-                        <button class="btn btn-sm" onclick='addAiMealToLog(${JSON.stringify(meal)})'>Add to Log</button>
-                        <button class="btn btn-sm btn-secondary" onclick='addAiMealToPlan(${JSON.stringify(meal)})'>Add to Plan</button>
+                        <button class="btn btn-sm" onclick='addAiMealToLog(${JSON.stringify(meal)}, "${cardId}")'>Add to Log</button>
+                        <button class="btn btn-sm btn-secondary" onclick='addAiMealToPlan(${JSON.stringify(meal)}, "${cardId}")'>Add to Plan</button>
                     </div>
                 </div>
             `).join('')}
             <div class="ai-action-actions" style="margin-top:10px;">
-                <button class="btn btn-sm" onclick='addAiFullPlanToPlan(${JSON.stringify(plan.meals)})'>Add Full Plan</button>
+                <button class="btn btn-sm" onclick='addAiFullPlanToPlan(${JSON.stringify(plan.meals)}, "${cardId}")'>Add Full Plan</button>
             </div>
         `;
         return wrapper;
     }
 
     return null;
+}
+
+function collapseAiActionCard(cardId, actionLabel, mealSummary) {
+    const card = document.getElementById(cardId);
+    if (!card) return;
+    card.className = 'ai-action-card collapsed';
+    card.innerHTML = `
+        <h4>${actionLabel}</h4>
+        <div class="tiny">${mealSummary}</div>
+    `;
 }
 
 function chooseActionDate(defaultDate = null) {
@@ -4165,7 +4179,7 @@ function chooseActionDate(defaultDate = null) {
     return chosen;
 }
 
-function addAiMealToLog(meal) {
+function addAiMealToLog(meal, cardId = null) {
     const date = chooseActionDate(currentViewDate);
     if (!date) return;
 
@@ -4192,10 +4206,14 @@ function addAiMealToLog(meal) {
     saveFoodLog();
     updateFoodLogDisplay();
     updateDashboard();
-    alert('Added to food log');
+    collapseAiActionCard(
+        cardId,
+        '✅ Added to Log',
+        `${meal.name || 'Suggested Meal'} — ${Math.round(Number(meal.calories || 0))} cal | P: ${Math.round(Number(meal.protein || 0) * 10) / 10}g`
+    );
 }
 
-function addAiMealToPlan(meal) {
+function addAiMealToPlan(meal, cardId = null) {
     const date = chooseActionDate(currentViewDate);
     if (!date) return;
 
@@ -4218,10 +4236,14 @@ function addAiMealToPlan(meal) {
     saveMeals();
     updateWeekView();
     updateDashboard();
-    alert('Added to meal plan');
+    collapseAiActionCard(
+        cardId,
+        `📅 Added to Plan (${date})`,
+        `${meal.name || 'Suggested Meal'} — ${Math.round(Number(meal.calories || 0))} cal | P: ${Math.round(Number(meal.protein || 0) * 10) / 10}g`
+    );
 }
 
-function addAiFullPlanToPlan(meals) {
+function addAiFullPlanToPlan(meals, cardId = null) {
     if (!Array.isArray(meals) || !meals.length) return;
     const date = chooseActionDate(currentViewDate);
     if (!date) return;
@@ -4247,7 +4269,11 @@ function addAiFullPlanToPlan(meals) {
     saveMeals();
     updateWeekView();
     updateDashboard();
-    alert('Full plan added to meal plan');
+    collapseAiActionCard(
+        cardId,
+        `📅 Added Full Plan (${date})`,
+        `${meals.length} meal${meals.length === 1 ? '' : 's'} added to your plan`
+    );
 }
 
 function parseAiPayload(rawText) {
