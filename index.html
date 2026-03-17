@@ -1018,7 +1018,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🍎 Food Tracker</h1>
+            <h1>Food Tracker</h1>
             <p>Your AI-Powered Nutrition Companion</p>
             <div style="margin-top: 15px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px;">
                 <div id="user-section" style="display: none;">
@@ -1116,7 +1116,7 @@
                 </div>
 
                 <div class="card">
-                    <h3>Meals for Selected Date</h3>
+                    <h3>Selected Date Activity</h3>
                     <div id="today-meals"></div>
                 </div>
 
@@ -3138,8 +3138,9 @@ function addFood() {
         return;
     }
 
+    const newFoodId = Date.now();
     foodLog.push({
-        id: Date.now(),
+        id: newFoodId,
         date: selectedDate,
         name,
         caloriesPerServing,
@@ -3154,6 +3155,7 @@ function addFood() {
         timestamp: new Date().toLocaleTimeString()
     });
 
+    lastLoggedFoodId = newFoodId;
     saveFoodLog();
     document.getElementById('food-name').value = '';
     document.getElementById('food-calories').value = '';
@@ -3274,6 +3276,7 @@ function updateFoodLogDisplay() {
     const selectedDate = currentViewDate;
     const foodsForDate = foodLog.filter(food => food.date === selectedDate);
     const completedMealsForDate = assignedMeals.filter(meal => meal.date === selectedDate && meal.completed);
+    const plannedMealsForDate = assignedMeals.filter(meal => meal.date === selectedDate && !meal.completed);
 
     const listElement = document.getElementById('food-log-list');
     const dashboardListElement = document.getElementById('today-food-list');
@@ -3281,7 +3284,7 @@ function updateFoodLogDisplay() {
     const foodHtml = foodsForDate.map(food => `
         <div class="food-log-item">
             <div>
-                <h4>${food.name} ${food.servings !== 1 ? `<span style="color: #4CAF50; font-size: 14px;">(${food.servings} serving${food.servings !== 1 ? 's' : ''})</span>` : ''}</h4>
+                <h4>${food.name} <span style="color: #4CAF50; font-size: 14px;">(logged)</span></h4>
                 <p>${Math.round(food.calories)} cal | C: ${Math.round(food.carbs * 10) / 10}g | P: ${Math.round(food.protein * 10) / 10}g | F: ${Math.round(food.fat * 10) / 10}g</p>
                 <p style="font-size: 12px; color: #999;">${food.timestamp || ''}</p>
             </div>
@@ -3297,7 +3300,7 @@ function updateFoodLogDisplay() {
         return `
             <div class="food-log-item">
                 <div>
-                    <h4>${meal.name} <span style="color: #4CAF50; font-size: 14px;">(from plan)</span></h4>
+                    <h4>${meal.name} <span style="color: #4CAF50; font-size: 14px;">(eaten from plan)</span></h4>
                     <p>${Math.round((meal.calories || 0) * servings)} cal | C: ${Math.round((meal.carbs || 0) * servings * 10) / 10}g | P: ${Math.round((meal.protein || 0) * servings * 10) / 10}g | F: ${Math.round((meal.fat || 0) * servings * 10) / 10}g</p>
                     <p style="font-size: 12px; color: #999;">${meal.completedAt ? 'Eaten at ' + meal.completedAt : ''}</p>
                 </div>
@@ -3305,7 +3308,20 @@ function updateFoodLogDisplay() {
         `;
     }).join('');
 
-    const combinedHtml = foodHtml + completedMealHtml;
+    const plannedMealHtml = plannedMealsForDate.map(meal => {
+        const servings = meal.servings || 1;
+        return `
+            <div class="food-log-item">
+                <div>
+                    <h4>${meal.name} <span style="color: #64748B; font-size: 14px;">(planned)</span></h4>
+                    <p>${Math.round((meal.calories || 0) * servings)} cal | C: ${Math.round((meal.carbs || 0) * servings * 10) / 10}g | P: ${Math.round((meal.protein || 0) * servings * 10) / 10}g | F: ${Math.round((meal.fat || 0) * servings * 10) / 10}g</p>
+                    <p style="font-size: 12px; color: #999;">${meal.time || 'No time set'}</p>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    const combinedHtml = foodHtml + completedMealHtml + plannedMealHtml;
 
     if (!combinedHtml) {
         const emptyMsg = '<p style="color: #999; text-align: center; padding: 20px;">No foods or meals for this date yet.</p>';
@@ -4059,6 +4075,7 @@ function loadShoppingList() {
 const BACKEND_URL = 'https://foodtracker-backend.onrender.com';
 let healthChatHistory = [];
 let detectedPreferences = [];
+let lastLoggedFoodId = null;
 
 let backendWarmed = false;
 
@@ -4099,6 +4116,38 @@ function renderHealthChatHistory() {
     container.scrollTop = container.scrollHeight;
 }
 
+
+function findMostRecentFoodEntry() {
+    if (!foodLog || foodLog.length === 0) return null;
+    const sorted = [...foodLog].sort((a, b) => (b.id || 0) - (a.id || 0));
+    return sorted[0] || null;
+}
+
+function updateExistingFoodLogEntry(entryId, meal) {
+    const existing = foodLog.find(f => f.id === entryId);
+    if (!existing) return false;
+    existing.name = meal.name || existing.name;
+    existing.caloriesPerServing = Number(meal.calories || existing.caloriesPerServing || 0);
+    existing.carbsPerServing = Number(meal.carbs || existing.carbsPerServing || 0);
+    existing.proteinPerServing = Number(meal.protein || existing.proteinPerServing || 0);
+    existing.fatPerServing = Number(meal.fat || existing.fatPerServing || 0);
+    existing.servings = Number(meal.servings || existing.servings || 1);
+    existing.calories = existing.caloriesPerServing * existing.servings;
+    existing.carbs = existing.carbsPerServing * existing.servings;
+    existing.protein = existing.proteinPerServing * existing.servings;
+    existing.fat = existing.fatPerServing * existing.servings;
+    existing.timestamp = new Date().toLocaleTimeString();
+    saveFoodLog();
+    updateFoodLogDisplay();
+    updateDashboard();
+    return true;
+}
+
+function looksLikeCorrectionRequest(message) {
+    const msg = String(message || '').toLowerCase();
+    return /(update my log|fix (it|that)|correct (it|that)|it should be|that should be|update the log|change the last entry)/.test(msg);
+}
+
 function shouldAutoLogToday(message) {
     const msg = String(message || '').toLowerCase();
     return /(add( it)? to (my )?(today'?s|todays) log|log (it|this|that) (for )?today|add to today'?s log)/.test(msg);
@@ -4118,12 +4167,14 @@ async function sendHealthMessage() {
     sendBtn.textContent = 'Thinking...';
 
     try {
-        let result;
+        let result = null;
 
         if (looksLikeFreeformFoodLog(message) && shouldAutoLogToday(message)) {
             const payload = parseFreeformFoodLog(message);
             if (payload && payload.meal) {
-                foodLog.push(buildMealLogEntry(payload.meal, new Date().toISOString().split('T')[0]));
+                const entry = buildMealLogEntry(payload.meal, new Date().toISOString().split('T')[0]);
+                foodLog.push(entry);
+                lastLoggedFoodId = entry.id;
                 saveFoodLog();
                 currentViewDate = new Date().toISOString().split('T')[0];
                 const dateInput = document.getElementById('view-date');
@@ -4137,12 +4188,23 @@ async function sendHealthMessage() {
                     payload: null
                 };
             }
+        } else if (looksLikeCorrectionRequest(message) && looksLikeFreeformFoodLog(message)) {
+            const payload = parseFreeformFoodLog(message);
+            const target = lastLoggedFoodId || (findMostRecentFoodEntry() ? findMostRecentFoodEntry().id : null);
+            if (payload && payload.meal && target && updateExistingFoodLogEntry(target, payload.meal)) {
+                result = {
+                    text: `✅ Updated your most recent log entry: ${payload.meal.name} — ${Math.round(Number(payload.meal.calories || 0))} cal | P: ${Math.round(Number(payload.meal.protein || 0) * 10) / 10}g | C: ${Math.round(Number(payload.meal.carbs || 0) * 10) / 10}g | F: ${Math.round(Number(payload.meal.fat || 0) * 10) / 10}g`,
+                    payload: null
+                };
+            }
         } else if (looksLikeFreeformFoodLog(message)) {
             result = {
                 text: 'I turned that into a loggable food entry for you. Confirm below.',
                 payload: parseFreeformFoodLog(message)
             };
-        } else {
+        }
+
+        if (!result) {
             result = await callOpenAIHealthAssistant(message);
         }
 
