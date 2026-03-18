@@ -38,7 +38,7 @@
 
         .header {
             text-align: center;
-            color: #1E3A8A;
+            color: #1E40AF;
             margin-bottom: 40px;
         }
 
@@ -79,7 +79,7 @@
 
         .nav-btn.active {
             background: #4CAF50;
-            color: #1E3A8A;
+            color: #1E40AF;
         }
 
         .content {
@@ -156,7 +156,7 @@
 
         .btn {
             background: #4CAF50;
-            color: #1E3A8A;
+            color: #1E40AF;
             border: none;
             padding: 12px 30px;
             border-radius: 25px;
@@ -223,7 +223,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #1E3A8A;
+            color: #1E40AF;
             font-weight: bold;
         }
 
@@ -283,7 +283,7 @@
 
         .delete-btn {
             background: #f44336;
-            color: #1E3A8A;
+            color: #1E40AF;
             border: none;
             padding: 8px 15px;
             border-radius: 5px;
@@ -314,7 +314,7 @@
 
         .chat-message.user {
             background: #4CAF50;
-            color: #1E3A8A;
+            color: #1E40AF;
             margin-left: auto;
         }
 
@@ -351,7 +351,7 @@
 
         .toggle-btn.active {
             background: #4CAF50;
-            color: #1E3A8A;
+            color: #1E40AF;
         }
 
         .meal-card {
@@ -394,7 +394,7 @@
         .meal-date-badge {
             display: inline-block;
             background: #4CAF50;
-            color: #1E3A8A;
+            color: #1E40AF;
             padding: 4px 12px;
             border-radius: 12px;
             font-size: 12px;
@@ -815,7 +815,7 @@
         }
 
         .scanner-result {
-            color: #1E3A8A;
+            color: #1E40AF;
             text-align: center;
             margin-top: 15px;
             font-size: 18px;
@@ -1217,8 +1217,7 @@
 
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 15px;">
                         <button class="btn btn-secondary" onclick="calculateSuggestedCalories()">🎯 Calculate My Targets</button>
-                        <button class="btn btn-secondary" onclick="calculateSuggestedMacros()">📊 Calculate My Targets</button>
-                    </div>
+</div>
 
                     <div class="input-group">
                         <label>Daily Calorie Goal</label>
@@ -2260,159 +2259,72 @@ function applyGoalEngine() {
 
 
 function calculateSuggestedCalories() {
-    const goalType = document.getElementById('goal-type').value;
-    
-    // Check if TDEE has been calculated
-    if (!userProfile.tdee) {
-        alert('Please calculate your TDEE first in the "Personal Information" section above!');
-        document.getElementById('user-name').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const age = parseFloat(document.getElementById('user-age')?.value);
+    const gender = document.getElementById('user-gender')?.value;
+    const activity = document.getElementById('activity-level')?.value;
+
+    let weight = 0;
+    let heightCm = 0;
+
+    if (currentUnit === 'imperial') {
+        const weightLbs = parseFloat(document.getElementById('current-weight')?.value);
+        const feet = parseFloat(document.getElementById('height-feet')?.value);
+        const inchesRaw = document.getElementById('height-inches')?.value;
+        const inches = inchesRaw === '' ? NaN : parseFloat(inchesRaw);
+
+        if (!weightLbs || !feet || Number.isNaN(inches)) {
+            alert('Please fill in your weight and height!');
+            return;
+        }
+
+        weight = weightLbs * 0.453592;
+        heightCm = ((feet * 12) + inches) * 2.54;
+    } else {
+        const weightKg = parseFloat(document.getElementById('current-weight-metric')?.value);
+        const heightMetric = parseFloat(document.getElementById('height-metric')?.value);
+
+        if (!weightKg || !heightMetric) {
+            alert('Please fill in your weight and height!');
+            return;
+        }
+
+        weight = weightKg;
+        heightCm = heightMetric;
+    }
+
+    if (!age || !gender || !activity) {
+        alert('Please complete age, gender, and activity level.');
         return;
     }
-    
-    const tdee = userProfile.tdee;
-    let suggestedCals, deficit, surplus, rationale, weeklyChange, timeEstimate;
-    
-    // Get current and target weight for time estimation
-    let currentWeight, targetWeight;
-    if (userProfile.units === 'imperial') {
-        currentWeight = parseFloat(document.getElementById('weight-lbs').value);
-        targetWeight = parseFloat(document.getElementById('target-weight-lbs').value);
+
+    let bmr = 0;
+    if (gender === 'male') {
+        bmr = (10 * weight) + (6.25 * heightCm) - (5 * age) + 5;
     } else {
-        currentWeight = parseFloat(document.getElementById('weight-kg').value);
-        targetWeight = parseFloat(document.getElementById('target-weight-kg').value);
-        // Convert to lbs for calculation
-        if (!isNaN(currentWeight)) currentWeight *= 2.20462;
-        if (!isNaN(targetWeight)) targetWeight *= 2.20462;
+        bmr = (10 * weight) + (6.25 * heightCm) - (5 * age) - 161;
     }
-    
-    if (goalType === 'cut') {
-        // Weight Loss: 300-500 calorie deficit
-        // Start with 400 cal deficit (moderate)
-        deficit = 400;
-        suggestedCals = tdee - deficit;
-        
-        // Don't go below 1200 for women or 1500 for men (minimum safe levels)
-        const minCals = userProfile.gender === 'female' ? 1200 : 1500;
-        if (suggestedCals < minCals) {
-            suggestedCals = minCals;
-            deficit = tdee - minCals;
-        }
-        
-        // 3500 calories = 1 lb fat
-        weeklyChange = (deficit * 7) / 3500;
-        
-        rationale = `<strong>Weight Loss Strategy</strong><br>
-                    • Your TDEE: ${tdee} calories/day<br>
-                    • Recommended deficit: ${deficit} calories/day<br>
-                    • This creates a ${Math.round(deficit * 7)} calorie weekly deficit<br><br>
-                    <strong style="color: #4CAF50;">Expected Results:</strong><br>
-                    • Weight loss: ~${weeklyChange.toFixed(1)} lbs per week<br>
-                    • Safe, sustainable pace (0.5-2 lbs/week is healthy)`;
-        
-        // Calculate time to goal if both weights are provided
-        if (!isNaN(currentWeight) && !isNaN(targetWeight) && currentWeight > targetWeight) {
-            const totalLossNeeded = currentWeight - targetWeight;
-            const weeksNeeded = Math.ceil(totalLossNeeded / weeklyChange);
-            const monthsNeeded = (weeksNeeded / 4.33).toFixed(1);
-            timeEstimate = `<br>• Time to reach ${Math.round(targetWeight)} ${userProfile.units === 'imperial' ? 'lbs' : 'kg'}: ~${weeksNeeded} weeks (${monthsNeeded} months)`;
-            rationale += timeEstimate;
-        }
-        
-        rationale += `<br><br>💡 <em>Adjust every 2-4 weeks as you lose weight</em>`;
-        
-    } else if (goalType === 'bulk') {
-        // Weight Gain: 300-500 calorie surplus
-        surplus = 400;
-        suggestedCals = tdee + surplus;
-        
-        weeklyChange = (surplus * 7) / 3500;
-        
-        rationale = `<strong>Weight Gain Strategy</strong><br>
-                    • Your TDEE: ${tdee} calories/day<br>
-                    • Recommended surplus: ${surplus} calories/day<br>
-                    • This creates a ${Math.round(surplus * 7)} calorie weekly surplus<br><br>
-                    <strong style="color: #4CAF50;">Expected Results:</strong><br>
-                    • Weight gain: ~${weeklyChange.toFixed(1)} lbs per week<br>
-                    • Lean muscle focus (0.5-1 lb/week is ideal)`;
-        
-        // Calculate time to goal if both weights are provided
-        if (!isNaN(currentWeight) && !isNaN(targetWeight) && targetWeight > currentWeight) {
-            const totalGainNeeded = targetWeight - currentWeight;
-            const weeksNeeded = Math.ceil(totalGainNeeded / weeklyChange);
-            const monthsNeeded = (weeksNeeded / 4.33).toFixed(1);
-            timeEstimate = `<br>• Time to reach ${Math.round(targetWeight)} ${userProfile.units === 'imperial' ? 'lbs' : 'kg'}: ~${weeksNeeded} weeks (${monthsNeeded} months)`;
-            rationale += timeEstimate;
-        }
-        
-        rationale += `<br><br>💡 <em>Combine with strength training for best results</em>`;
-        
-    } else {
-        // Maintenance: Match TDEE
-        suggestedCals = tdee;
-        
-        rationale = `<strong>Weight Maintenance Strategy</strong><br>
-                    • Your TDEE: ${tdee} calories/day<br>
-                    • Recommended intake: Match your TDEE<br><br>
-                    <strong style="color: #4CAF50;">Expected Results:</strong><br>
-                    • Stable weight maintenance<br>
-                    • Energy balance for current activity level<br><br>
-                    💡 <em>Monitor weekly and adjust ±100-200 cals as needed</em>`;
-    }
-    
-    // Store suggestion
-    suggestedCalories = Math.round(suggestedCals);
-    
-    // Create visual display
-    const content = `
-        <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 12px;">
-            <div style="font-size: 13px; color: #666; margin-bottom: 15px; line-height: 1.8;">${rationale}</div>
-            
-            <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #4CAF50, #8BC34A); border-radius: 10px; color: #1E3A8A; margin-top: 15px;">
-                <div style="font-size: 14px; font-weight: 600; opacity: 0.9; margin-bottom: 8px;">RECOMMENDED DAILY CALORIES</div>
-                <div style="font-size: 42px; font-weight: bold; margin: 10px 0;">${suggestedCalories}</div>
-                <div style="font-size: 14px; opacity: 0.9;">calories per day</div>
-            </div>
-            
-            ${goalType === 'cut' ? `
-                <div style="margin-top: 15px; padding: 12px; background: #FFF3E0; border-left: 4px solid #FF9800; border-radius: 4px;">
-                    <strong style="color: #F57C00;">Pro Tips for Cutting:</strong>
-                    <ul style="margin: 8px 0 0 0; padding-left: 20px; font-size: 13px; color: #666; line-height: 1.6;">
-                        <li>Prioritize protein to preserve muscle</li>
-                        <li>Track weight weekly, not daily</li>
-                        <li>If losing >2 lbs/week, increase calories</li>
-                        <li>If not losing after 2 weeks, reduce by 100-200 cal</li>
-                    </ul>
-                </div>
-            ` : ''}
-            
-            ${goalType === 'bulk' ? `
-                <div style="margin-top: 15px; padding: 12px; background: #E3F2FD; border-left: 4px solid #2196F3; border-radius: 4px;">
-                    <strong style="color: #1976D2;">Pro Tips for Bulking:</strong>
-                    <ul style="margin: 8px 0 0 0; padding-left: 20px; font-size: 13px; color: #666; line-height: 1.6;">
-                        <li>Gain slowly to minimize fat gain</li>
-                        <li>If gaining >1.5 lbs/week, reduce calories</li>
-                        <li>Focus on progressive overload in training</li>
-                        <li>Get 7-9 hours of sleep for recovery</li>
-                    </ul>
-                </div>
-            ` : ''}
-            
-            ${goalType === 'maintain' ? `
-                <div style="margin-top: 15px; padding: 12px; background: #F3E5F5; border-left: 4px solid #9C27B0; border-radius: 4px;">
-                    <strong style="color: #7B1FA2;">Pro Tips for Maintenance:</strong>
-                    <ul style="margin: 8px 0 0 0; padding-left: 20px; font-size: 13px; color: #666; line-height: 1.6;">
-                        <li>Weigh weekly to catch drift early</li>
-                        <li>Adjust calories if weight changes >2-3 lbs</li>
-                        <li>Increase protein on training days if desired</li>
-                        <li>This is great for recomposition!</li>
-                    </ul>
-                </div>
-            ` : ''}
-        </div>
-    `;
-    
-    document.getElementById('calorie-suggestion-content').innerHTML = content;
-    document.getElementById('calorie-suggestions-modal').classList.add('show');
+
+    const activityMultipliers = {
+        sedentary: 1.2,
+        lightly_active: 1.375,
+        moderately_active: 1.55,
+        very_active: 1.725,
+        extremely_active: 1.9
+    };
+
+    const tdee = Math.round(bmr * (activityMultipliers[activity] || 1.55));
+    userProfile.bmr = Math.round(bmr);
+    userProfile.tdee = tdee;
+
+    const goalType = document.getElementById('goal-type')?.value || 'maintain';
+    let targetCalories = tdee;
+    if (goalType === 'Weight Loss (Cut)' || goalType === 'cut' || goalType === 'weight_loss') targetCalories = Math.max(1200, tdee - 500);
+    if (goalType === 'Weight Gain (Bulk)' || goalType === 'bulk' || goalType === 'weight_gain') targetCalories = tdee + 300;
+
+    const calInput = document.getElementById('daily-calories');
+    if (calInput) calInput.value = Math.round(targetCalories);
+
+    calculateSuggestedMacros();
 }
 
 function closeCalorieSuggestionsModal() {
@@ -2436,185 +2348,24 @@ function applySuggestedCalories() {
 }
 
 function calculateSuggestedMacros() {
-    const calories = parseInt(document.getElementById('daily-calories').value);
-    const goalType = document.getElementById('goal-type').value;
-    const activityLevel = parseFloat(document.getElementById('activity-level').value);
-    
-    if (!calories || calories <= 0) {
-        alert('Please enter a valid daily calorie goal first!');
+    const calories = parseFloat(document.getElementById('daily-calories')?.value);
+    if (!calories) {
+        alert('Please calculate or enter your daily calories first.');
         return;
     }
-    
-    // Get current weight for protein calculation
-    let weightKg;
-    if (userProfile.units === 'imperial') {
-        const lbs = parseFloat(document.getElementById('weight-lbs').value);
-        if (!isNaN(lbs)) {
-            weightKg = lbs / 2.20462;
-        }
-    } else {
-        weightKg = parseFloat(document.getElementById('weight-kg').value);
-    }
-    
-    let proteinPercent, carbsPercent, fatPercent;
-    let proteinGrams, carbsGrams, fatGrams;
-    let rationale;
-    
-    // Calculate based on goal type
-    if (goalType === 'cut') {
-        // Weight Loss: Higher protein to preserve muscle, moderate fat, lower carbs
-        // Protein: 30-40%, Fat: 25-30%, Carbs: 30-45%
-        proteinPercent = 35;
-        fatPercent = 25;
-        carbsPercent = 40;
-        
-        // If we have weight, aim for 1.0-1.2g protein per lb (2.2-2.6g per kg)
-        if (weightKg) {
-            proteinGrams = Math.round(weightKg * 2.4); // 2.4g per kg = ~1.1g per lb
-            const proteinCals = proteinGrams * 4;
-            
-            // Adjust if protein calories would be too high
-            if (proteinCals > calories * 0.4) {
-                proteinGrams = Math.round((calories * 0.35) / 4);
-            }
-        } else {
-            proteinGrams = Math.round((calories * proteinPercent / 100) / 4);
-        }
-        
-        fatGrams = Math.round((calories * fatPercent / 100) / 9);
-        
-        // Remaining calories go to carbs
-        const remainingCals = calories - (proteinGrams * 4) - (fatGrams * 9);
-        carbsGrams = Math.round(remainingCals / 4);
-        
-        rationale = `<strong>Weight Loss (Cut)</strong><br>
-                    • Higher protein (${proteinPercent}%) to preserve muscle mass<br>
-                    • Moderate fat (${fatPercent}%) for hormone health<br>
-                    • Lower carbs (${carbsPercent}%) to create deficit<br>
-                    💡 Aim for 0.5-1 lb loss per week`;
-        
-    } else if (goalType === 'bulk') {
-        // Weight Gain: Moderate-high protein, higher carbs for energy, moderate fat
-        // Protein: 25-30%, Fat: 25-30%, Carbs: 40-50%
-        proteinPercent = 25;
-        fatPercent = 25;
-        carbsPercent = 50;
-        
-        // If we have weight, aim for 0.8-1.0g protein per lb (1.8-2.2g per kg)
-        if (weightKg) {
-            proteinGrams = Math.round(weightKg * 2.0); // 2.0g per kg = ~0.9g per lb
-            const proteinCals = proteinGrams * 4;
-            
-            if (proteinCals > calories * 0.3) {
-                proteinGrams = Math.round((calories * 0.25) / 4);
-            }
-        } else {
-            proteinGrams = Math.round((calories * proteinPercent / 100) / 4);
-        }
-        
-        fatGrams = Math.round((calories * fatPercent / 100) / 9);
-        
-        // Remaining calories go to carbs (more for muscle building)
-        const remainingCals = calories - (proteinGrams * 4) - (fatGrams * 9);
-        carbsGrams = Math.round(remainingCals / 4);
-        
-        rationale = `<strong>Weight Gain (Bulk)</strong><br>
-                    • Moderate protein (${proteinPercent}%) for muscle growth<br>
-                    • Higher carbs (${carbsPercent}%) for energy and recovery<br>
-                    • Moderate fat (${fatPercent}%) for hormone production<br>
-                    💡 Aim for 0.5-1 lb gain per week`;
-        
-    } else {
-        // Maintenance: Balanced macros
-        // Protein: 25-30%, Fat: 25-30%, Carbs: 40-50%
-        
-        if (activityLevel >= 1.725) {
-            // Very/extremely active: higher carbs
-            proteinPercent = 25;
-            fatPercent = 25;
-            carbsPercent = 50;
-        } else if (activityLevel >= 1.55) {
-            // Moderately active: balanced
-            proteinPercent = 30;
-            fatPercent = 25;
-            carbsPercent = 45;
-        } else {
-            // Sedentary/lightly active: slightly lower carbs
-            proteinPercent = 30;
-            fatPercent = 30;
-            carbsPercent = 40;
-        }
-        
-        // If we have weight, aim for 0.7-0.9g protein per lb (1.5-2.0g per kg)
-        if (weightKg) {
-            proteinGrams = Math.round(weightKg * 1.8); // 1.8g per kg = ~0.8g per lb
-            const proteinCals = proteinGrams * 4;
-            
-            if (proteinCals > calories * 0.35) {
-                proteinGrams = Math.round((calories * 0.3) / 4);
-            }
-        } else {
-            proteinGrams = Math.round((calories * proteinPercent / 100) / 4);
-        }
-        
-        fatGrams = Math.round((calories * fatPercent / 100) / 9);
-        
-        // Remaining calories go to carbs
-        const remainingCals = calories - (proteinGrams * 4) - (fatGrams * 9);
-        carbsGrams = Math.round(remainingCals / 4);
-        
-        rationale = `<strong>Maintain Weight</strong><br>
-                    • Balanced protein (${proteinPercent}%) for maintenance<br>
-                    • Moderate fat (${fatPercent}%) for health<br>
-                    • ${carbsPercent}% carbs based on your activity level<br>
-                    💡 Adjust based on energy levels`;
-    }
-    
-    // Recalculate percentages based on actual grams
-    const totalCals = (proteinGrams * 4) + (carbsGrams * 4) + (fatGrams * 9);
-    const actualProteinPercent = Math.round((proteinGrams * 4 / totalCals) * 100);
-    const actualCarbsPercent = Math.round((carbsGrams * 4 / totalCals) * 100);
-    const actualFatPercent = Math.round((fatGrams * 9 / totalCals) * 100);
-    
-    // Store suggestions
-    suggestedMacros = {
-        proteinGrams,
-        carbsGrams,
-        fatGrams,
-        proteinPercent: actualProteinPercent,
-        carbsPercent: actualCarbsPercent,
-        fatPercent: actualFatPercent
-    };
-    
-    // Display suggestions
-    const content = `
-        <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 12px;">
-            <div style="font-size: 13px; color: #666; margin-bottom: 12px; line-height: 1.6;">${rationale}</div>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; text-align: center;">
-                <div style="padding: 12px; background: #FFF3E0; border-radius: 8px;">
-                    <div style="color: #FF9800; font-weight: 600; font-size: 12px;">Carbs</div>
-                    <div style="font-size: 20px; font-weight: bold; color: #333; margin: 6px 0;">${carbsGrams}g</div>
-                    <div style="font-size: 12px; color: #999;">${actualCarbsPercent}%</div>
-                </div>
-                <div style="padding: 12px; background: #E3F2FD; border-radius: 8px;">
-                    <div style="color: #2196F3; font-weight: 600; font-size: 12px;">Protein</div>
-                    <div style="font-size: 20px; font-weight: bold; color: #333; margin: 6px 0;">${proteinGrams}g</div>
-                    <div style="font-size: 12px; color: #999;">${actualProteinPercent}%</div>
-                </div>
-                <div style="padding: 12px; background: #FFEBEE; border-radius: 8px;">
-                    <div style="color: #F44336; font-weight: 600; font-size: 12px;">Fat</div>
-                    <div style="font-size: 20px; font-weight: bold; color: #333; margin: 6px 0;">${fatGrams}g</div>
-                    <div style="font-size: 12px; color: #999;">${actualFatPercent}%</div>
-                </div>
-            </div>
-            <div style="margin-top: 12px; padding: 10px; background: #f5f5f5; border-radius: 6px; font-size: 12px; color: #666;">
-                Total: ${totalCals} calories from macros
-            </div>
-        </div>
-    `;
-    
-    document.getElementById('macro-suggestion-content').innerHTML = content;
-    document.getElementById('macro-suggestions-modal').classList.add('show');
+
+    // Default macro logic: higher protein, balanced carbs, moderate fat
+    const proteinG = Math.round((calories * 0.28) / 4);
+    const fatG = Math.round((calories * 0.22) / 9);
+    const carbG = Math.round((calories - (proteinG * 4) - (fatG * 9)) / 4);
+
+    const carbsInput = document.getElementById('carbs-grams');
+    const proteinInput = document.getElementById('protein-grams');
+    const fatInput = document.getElementById('fat-grams');
+
+    if (carbsInput) carbsInput.value = carbG;
+    if (proteinInput) proteinInput.value = proteinG;
+    if (fatInput) fatInput.value = fatG;
 }
 
 function closeMacroSuggestionsModal() {
@@ -2642,89 +2393,40 @@ function applySuggestedMacros() {
 }
 
 async function saveProfile() {
+    userProfile.name = document.getElementById('user-name')?.value || '';
+    userProfile.gender = document.getElementById('user-gender')?.value || '';
+    userProfile.age = parseFloat(document.getElementById('user-age')?.value) || null;
+    userProfile.activityLevel = document.getElementById('activity-level')?.value || '';
+
+    if (currentUnit === 'imperial') {
+        userProfile.currentWeight = parseFloat(document.getElementById('current-weight')?.value) || null;
+        userProfile.targetWeight = parseFloat(document.getElementById('target-weight')?.value) || null;
+        userProfile.heightFeet = parseFloat(document.getElementById('height-feet')?.value) || null;
+        userProfile.heightInches = document.getElementById('height-inches')?.value === '' ? null : parseFloat(document.getElementById('height-inches')?.value);
+        userProfile.heightCm = userProfile.heightFeet && userProfile.heightInches !== null ? ((userProfile.heightFeet * 12) + userProfile.heightInches) * 2.54 : null;
+    } else {
+        userProfile.currentWeightMetric = parseFloat(document.getElementById('current-weight-metric')?.value) || null;
+        userProfile.targetWeightMetric = parseFloat(document.getElementById('target-weight-metric')?.value) || null;
+        userProfile.heightMetric = parseFloat(document.getElementById('height-metric')?.value) || null;
+        userProfile.heightCm = userProfile.heightMetric || null;
+    }
+
+    userProfile.goalType = document.getElementById('goal-type')?.value || 'maintain';
+    userProfile.dailyCalories = parseFloat(document.getElementById('daily-calories')?.value) || 2000;
+    userProfile.carbs = parseFloat(document.getElementById('carbs-grams')?.value) || 250;
+    userProfile.protein = parseFloat(document.getElementById('protein-grams')?.value) || 150;
+    userProfile.fat = parseFloat(document.getElementById('fat-grams')?.value) || 67;
+    userProfile.dietType = document.getElementById('diet-type')?.value || '';
+    userProfile.allergies = document.getElementById('allergies')?.value || '';
+    userProfile.preferences = document.getElementById('food-preferences')?.value || '';
+
+    localStorage.setItem('userProfile', JSON.stringify(userProfile));
+    if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
+
     updateDashboard();
+    if (typeof displayTodayMeals === 'function') displayTodayMeals();
+    if (typeof updateFoodLogDisplay === 'function') updateFoodLogDisplay();
     alert('Profile saved and dashboard updated');
-    alert('Profile saved');
-    // Personal info
-    userProfile.name = document.getElementById('user-name').value;
-    userProfile.gender = document.getElementById('user-gender').value;
-    userProfile.age = parseInt(document.getElementById('user-age').value) || null;
-    userProfile.activityLevel = parseFloat(document.getElementById('activity-level').value);
-    
-    // Weight and height based on current unit system
-    if (userProfile.units === 'imperial') {
-        userProfile.weight.imperial = parseFloat(document.getElementById('weight-lbs').value) || null;
-        userProfile.targetWeight.imperial = parseFloat(document.getElementById('target-weight-lbs').value) || null;
-        userProfile.height.feet = parseFloat(document.getElementById('height-feet').value) || null;
-        userProfile.height.inches = parseFloat(document.getElementById('height-inches').value) || null;
-        
-        // Convert to metric for storage
-        if (userProfile.weight.imperial) {
-            userProfile.weight.metric = userProfile.weight.imperial / 2.20462;
-        }
-        if (userProfile.targetWeight.imperial) {
-            userProfile.targetWeight.metric = userProfile.targetWeight.imperial / 2.20462;
-        }
-        if (userProfile.height.feet && userProfile.height.inches !== null) {
-            userProfile.height.cm = ((userProfile.height.feet * 12) + userProfile.height.inches) * 2.54;
-        }
-    } else {
-        userProfile.weight.metric = parseFloat(document.getElementById('weight-kg').value) || null;
-        userProfile.targetWeight.metric = parseFloat(document.getElementById('target-weight-kg').value) || null;
-        userProfile.height.cm = parseFloat(document.getElementById('height-cm').value) || null;
-        
-        // Convert to imperial for storage
-        if (userProfile.weight.metric) {
-            userProfile.weight.imperial = userProfile.weight.metric * 2.20462;
-        }
-        if (userProfile.targetWeight.metric) {
-            userProfile.targetWeight.imperial = userProfile.targetWeight.metric * 2.20462;
-        }
-        if (userProfile.height.cm) {
-            const totalInches = userProfile.height.cm / 2.54;
-            userProfile.height.feet = Math.floor(totalInches / 12);
-            userProfile.height.inches = totalInches % 12;
-        }
-    }
-    
-    // Daily calories and macros
-    userProfile.dailyCalories = parseInt(document.getElementById('daily-calories').value);
-    
-    if (userProfile.macroType === 'percentage') {
-        const calories = userProfile.dailyCalories;
-        const carbsPercent = parseInt(document.getElementById('carbs-percent').value);
-        const proteinPercent = parseInt(document.getElementById('protein-percent').value);
-        const fatPercent = parseInt(document.getElementById('fat-percent').value);
-        
-        if (carbsPercent + proteinPercent + fatPercent !== 100) {
-            alert('Macro percentages must add up to 100%');
-            return;
-        }
-        
-        userProfile.macros.carbs = Math.round((calories * carbsPercent / 100) / 4);
-        userProfile.macros.protein = Math.round((calories * proteinPercent / 100) / 4);
-        userProfile.macros.fat = Math.round((calories * fatPercent / 100) / 9);
-    } else {
-        userProfile.macros.carbs = parseInt(document.getElementById('carbs-grams').value);
-        userProfile.macros.protein = parseInt(document.getElementById('protein-grams').value);
-        userProfile.macros.fat = parseInt(document.getElementById('fat-grams').value);
-    }
-    
-    userProfile.preferences = {
-        dietType: document.getElementById('diet-type').value,
-        allergies: document.getElementById('allergies').value.split(',').map(s => s.trim()).filter(s => s),
-        dislikes: document.getElementById('dislikes').value.split(',').map(s => s.trim()).filter(s => s),
-        healthGoals: document.getElementById('health-goals').value.split(',').map(s => s.trim()).filter(s => s)
-    };
-    
-    if (currentUser && firebaseInitialized) {
-        saveToCloud();
-    } else {
-        localStorage.setItem('userProfile', JSON.stringify(userProfile));
-    }
-    
-    alert('Profile saved!');
-    updateDashboard();
 }
 
 function loadProfile() {
@@ -3438,59 +3140,54 @@ function updateFoodLogDisplay() {
 
 function updateDashboard() {
     const selectedDate = currentViewDate || new Date().toISOString().split('T')[0];
-    const todayFoods = foodLog.filter(food => food.date === selectedDate);
-    const todayMeals = assignedMeals.filter(meal => meal.date === selectedDate);
-    
-    // Calculate actual (eaten) macros
-    let actualCalories = 0, actualCarbs = 0, actualProtein = 0, actualFat = 0;
-    
-    todayFoods.forEach(food => {
-        actualCalories += food.calories;
-        actualCarbs += food.carbs;
-        actualProtein += food.protein;
-        actualFat += food.fat;
-    });
-    
-    todayMeals.filter(m => m.completed).forEach(meal => {
-        const servings = meal.servings || 1;
-        actualCalories += meal.calories * servings;
-        actualCarbs += meal.carbs * servings;
-        actualProtein += meal.protein * servings;
-        actualFat += meal.fat * servings;
-    });
-    
-    // Calculate planned (not yet eaten) macros
-    let plannedCarbs = 0, plannedProtein = 0, plannedFat = 0;
-    
-    todayMeals.filter(m => !m.completed).forEach(meal => {
-        const servings = meal.servings || 1;
-        plannedCarbs += meal.carbs * servings;
-        plannedProtein += meal.protein * servings;
-        plannedFat += meal.fat * servings;
-    });
-    
-    // Update calories progress bar (only actual eaten calories)
-    const caloriesPercent = Math.min((actualCalories / userProfile.dailyCalories) * 100, 100);
-    document.getElementById('calories-progress').style.width = caloriesPercent + '%';
-    document.getElementById('calories-progress').textContent = Math.round(caloriesPercent) + '%';
-    document.getElementById('calories-text').textContent = `${Math.round(actualCalories)} / ${userProfile.dailyCalories} cal`;
-    
-    // Update macros - show actual / planned
-    document.getElementById('carbs-actual').textContent = Math.round(actualCarbs) + 'g';
-    document.getElementById('carbs-planned').textContent = ' / ' + Math.round(plannedCarbs) + 'g';
-    document.getElementById('carbs-goal').textContent = `Goal: ${userProfile.macros.carbs}g`;
-    
-    document.getElementById('protein-actual').textContent = Math.round(actualProtein) + 'g';
-    document.getElementById('protein-planned').textContent = ' / ' + Math.round(plannedProtein) + 'g';
-    document.getElementById('protein-goal').textContent = `Goal: ${userProfile.macros.protein}g`;
-    
-    document.getElementById('fat-actual').textContent = Math.round(actualFat) + 'g';
-    document.getElementById('fat-planned').textContent = ' / ' + Math.round(plannedFat) + 'g';
-    document.getElementById('fat-goal').textContent = `Goal: ${userProfile.macros.fat}g`;
-    
+
+    const foodsForDate = foodLog.filter(food => food.date === selectedDate);
+    const mealsForDate = assignedMeals.filter(meal => meal.date === selectedDate);
+    const eatenMeals = mealsForDate.filter(meal => meal.completed);
+    const plannedMeals = mealsForDate.filter(meal => !meal.completed);
+
+    const actualCalories = foodsForDate.reduce((sum, f) => sum + (Number(f.calories) || 0), 0) +
+        eatenMeals.reduce((sum, m) => sum + ((Number(m.calories) || 0) * (Number(m.completedServings || m.servings || 1))), 0);
+    const actualCarbs = foodsForDate.reduce((sum, f) => sum + (Number(f.carbs) || 0), 0) +
+        eatenMeals.reduce((sum, m) => sum + ((Number(m.carbs) || 0) * (Number(m.completedServings || m.servings || 1))), 0);
+    const actualProtein = foodsForDate.reduce((sum, f) => sum + (Number(f.protein) || 0), 0) +
+        eatenMeals.reduce((sum, m) => sum + ((Number(m.protein) || 0) * (Number(m.completedServings || m.servings || 1))), 0);
+    const actualFat = foodsForDate.reduce((sum, f) => sum + (Number(f.fat) || 0), 0) +
+        eatenMeals.reduce((sum, m) => sum + ((Number(m.fat) || 0) * (Number(m.completedServings || m.servings || 1))), 0);
+
+    const plannedCalories = plannedMeals.reduce((sum, m) => sum + ((Number(m.calories) || 0) * (Number(m.servings || 1))), 0);
+    const plannedCarbs = plannedMeals.reduce((sum, m) => sum + ((Number(m.carbs) || 0) * (Number(m.servings || 1))), 0);
+    const plannedProtein = plannedMeals.reduce((sum, m) => sum + ((Number(m.protein) || 0) * (Number(m.servings || 1))), 0);
+    const plannedFat = plannedMeals.reduce((sum, m) => sum + ((Number(m.fat) || 0) * (Number(m.servings || 1))), 0);
+
+    const targetCalories = Number(userProfile.dailyCalories) || 2000;
+    const targetCarbs = Number(userProfile.carbs) || 250;
+    const targetProtein = Number(userProfile.protein) || 150;
+    const targetFat = Number(userProfile.fat) || 67;
+
+    const calPct = Math.min(100, Math.round((actualCalories / targetCalories) * 100 || 0));
+
+    const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    setText('daily-calories-display', `${Math.round(actualCalories)} / ${Math.round(targetCalories)} cal`);
+    setText('calories-display', `${Math.round(actualCalories)} / ${Math.round(targetCalories)} cal`);
+    setText('calories-progress-text', `${calPct}%`);
+    const prog = document.getElementById('calories-progress-fill');
+    if (prog) prog.style.width = `${calPct}%`;
+
+    setText('carbs-display', `${Math.round(actualCarbs)}g`);
+    setText('carbs-planned', ` / ${Math.round(plannedCarbs)}g`);
+    setText('carbs-goal', `Goal: ${Math.round(targetCarbs)}g`);
+
+    setText('protein-display', `${Math.round(actualProtein)}g`);
+    setText('protein-planned', ` / ${Math.round(plannedProtein)}g`);
+    setText('protein-goal', `Goal: ${Math.round(targetProtein)}g`);
+
+    setText('fat-display', `${Math.round(actualFat)}g`);
+    setText('fat-planned', ` / ${Math.round(plannedFat)}g`);
+    setText('fat-goal', `Goal: ${Math.round(targetFat)}g`);
+
+    updateUpcomingMacros();
     displayTodayMeals();
-    displayUpcomingMacros();
-    updateCoachSummary();
 }
 
 function displayUpcomingMacros() {
@@ -3590,11 +3287,6 @@ function displayTodayMeals() {
             <h4 style="color:#334155; margin-bottom:10px;">Meal Plan</h4>
             ${plannedMeals.map(meal => {
                 const servings = meal.servings || 1;
-                const displayCals = Math.round((meal.calories || 0) * servings);
-                const displayCarbs = Math.round((meal.carbs || 0) * servings * 10) / 10;
-                const displayProtein = Math.round((meal.protein || 0) * servings * 10) / 10;
-                const displayFat = Math.round((meal.fat || 0) * servings * 10) / 10;
-
                 return `
                     <div class="meal-card" style="margin-bottom:10px;">
                         <div class="meal-header">
@@ -3614,7 +3306,7 @@ function displayTodayMeals() {
                             </div>
                         </div>
                         <p>${meal.description || ''}</p>
-                        <p style="margin-top: 8px; color: #666;">${displayCals} cal | C: ${displayCarbs}g | P: ${displayProtein}g | F: ${displayFat}g</p>
+                        <p style="margin-top: 8px; color: #666;">${Math.round((meal.calories || 0) * servings)} cal | C: ${Math.round((meal.carbs || 0) * servings * 10) / 10}g | P: ${Math.round((meal.protein || 0) * servings * 10) / 10}g | F: ${Math.round((meal.fat || 0) * servings * 10) / 10}g</p>
                     </div>
                 `;
             }).join('')}
@@ -3626,28 +3318,22 @@ function displayTodayMeals() {
             <h4 style="color:#334155; margin-bottom:10px;">Completed Meals</h4>
             ${completedMeals.map(meal => {
                 const servings = meal.completedServings || meal.servings || 1;
-                const displayCals = Math.round((meal.calories || 0) * servings);
-                const displayCarbs = Math.round((meal.carbs || 0) * servings * 10) / 10;
-                const displayProtein = Math.round((meal.protein || 0) * servings * 10) / 10;
-                const displayFat = Math.round((meal.fat || 0) * servings * 10) / 10;
-
                 return `
                     <div class="meal-card completed" style="margin-bottom:10px;">
                         <div class="meal-header">
                             <div>
                                 <h4>${normalizeMealName(meal.name)}</h4>
-                                <div class="meal-time">${meal.time || 'No time set'} • ✓ eaten at </div>
+                                <div class="meal-time">${meal.time || 'No time set'} • ✓ eaten at ${meal.completedAt || ''}</div>
                             </div>
                             <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                                 <span style="color:#666; font-size:14px;">${servings} serving${servings !== 1 ? 's' : ''}</span>
                                 <button class="btn btn-sm btn-secondary" onclick="editMeal(${meal.id})">Edit</button>
                                 <button class="btn btn-sm" onclick="copyMealEntry(${meal.id})">Copy</button>
                                 <button class="btn btn-sm btn-danger" onclick="deleteCompletedMeal(${meal.id})">Delete</button>
-                                
                             </div>
                         </div>
                         <p>${meal.description || ''}</p>
-                        <p style="margin-top: 8px; color: #666;">${displayCals} cal | C: ${displayCarbs}g | P: ${displayProtein}g | F: ${displayFat}g</p>
+                        <p style="margin-top: 8px; color: #666;">${Math.round((meal.calories || 0) * servings)} cal | C: ${Math.round((meal.carbs || 0) * servings * 10) / 10}g | P: ${Math.round((meal.protein || 0) * servings * 10) / 10}g | F: ${Math.round((meal.fat || 0) * servings * 10) / 10}g</p>
                     </div>
                 `;
             }).join('')}
