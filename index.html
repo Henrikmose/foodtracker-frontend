@@ -1129,26 +1129,28 @@
             <!-- Profile Section -->
             <div id="profile" class="section">
                 <h2 class="section-title">Profile Setup</h2>
-                
+
                 <div class="card">
                     <h3>Personal Information</h3>
+
                     <div class="input-group">
                         <label>Name</label>
                         <input type="text" id="user-name" placeholder="Your name">
                     </div>
-                    
-                    <div class="input-group">
-                        <label>Gender</label>
-                        <select id="user-gender">
-                            <option value="">Select gender</option>
-                            <option value="male">Male</option>
-                            <option value="female">Female</option>
-                        </select>
-                    </div>
 
-                    <div class="input-group">
-                        <label>Age</label>
-                        <input type="number" id="user-age" placeholder="e.g., 30" min="1" max="120">
+                    <div class="row">
+                        <div class="input-group">
+                            <label>Gender</label>
+                            <select id="user-gender">
+                                <option value="">Select gender</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Age</label>
+                            <input type="number" id="user-age" placeholder="e.g., 30" min="1" max="120">
+                        </div>
                     </div>
 
                     <div class="toggle-container">
@@ -1159,33 +1161,33 @@
                     <div id="imperial-inputs">
                         <div class="input-group">
                             <label>Current Weight (lbs)</label>
-                            <input type="number" id="weight-lbs" placeholder="e.g., 180" step="0.1">
+                            <input type="number" id="weight-lbs" placeholder="e.g., 210" step="0.1">
                         </div>
                         <div class="input-group">
                             <label>Target Weight (lbs)</label>
-                            <input type="number" id="target-weight-lbs" placeholder="e.g., 160" step="0.1">
+                            <input type="number" id="target-weight-lbs" placeholder="e.g., 175" step="0.1">
                         </div>
                         <div class="input-group">
                             <label>Height</label>
-                            <div style="display: flex; gap: 10px;">
-                                <input type="number" id="height-feet" placeholder="Feet" min="0" max="8" style="flex: 1;">
-                                <input type="number" id="height-inches" placeholder="Inches" min="0" max="11" step="0.1" style="flex: 1;">
+                            <div class="row">
+                                <input type="number" id="height-feet" placeholder="Feet" min="0" max="8">
+                                <input type="number" id="height-inches" placeholder="Inches" min="0" max="11" step="0.1">
                             </div>
                         </div>
                     </div>
 
-                    <div id="metric-inputs" style="display: none;">
+                    <div id="metric-inputs" style="display:none;">
                         <div class="input-group">
                             <label>Current Weight (kg)</label>
-                            <input type="number" id="weight-kg" placeholder="e.g., 82" step="0.1">
+                            <input type="number" id="weight-kg" placeholder="e.g., 95" step="0.1">
                         </div>
                         <div class="input-group">
                             <label>Target Weight (kg)</label>
-                            <input type="number" id="target-weight-kg" placeholder="e.g., 73" step="0.1">
+                            <input type="number" id="target-weight-kg" placeholder="e.g., 79" step="0.1">
                         </div>
                         <div class="input-group">
                             <label>Height (cm)</label>
-                            <input type="number" id="height-cm" placeholder="e.g., 175" step="0.1">
+                            <input type="number" id="height-cm" placeholder="e.g., 180" step="0.1">
                         </div>
                     </div>
 
@@ -1194,18 +1196,16 @@
                         <select id="activity-level">
                             <option value="1.2">Sedentary (little or no exercise)</option>
                             <option value="1.375">Lightly active (1-3 days/week)</option>
-                            <option value="1.55" selected>Moderately active (3-5 days/week)</option>
+                            <option value="1.55">Moderately active (3-5 days/week)</option>
                             <option value="1.725">Very active (6-7 days/week)</option>
                             <option value="1.9">Extremely active (twice per day, intense)</option>
                         </select>
                     </div>
-
-                    <button class="btn btn-secondary" onclick="calculateCalories()" style="width: 100%; margin-top: 10px;">📊 Calculate My Targets</button>
                 </div>
 
                 <div class="card">
                     <h3>Daily Goals</h3>
-                    
+
                     <div class="input-group">
                         <label>Goal Type</label>
                         <select id="goal-type">
@@ -1215,36 +1215,14 @@
                         </select>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 15px;">
-                        <button class="btn btn-secondary" onclick="calculateSuggestedCalories()">🎯 Calculate My Targets</button>
-</div>
+                    <button class="btn btn-secondary" onclick="calculateProfileTargets()">🎯 Calculate My Targets</button>
 
-                    <div class="input-group">
+                    <div class="input-group" style="margin-top:15px;">
                         <label>Daily Calorie Goal</label>
-                        <input type="number" id="daily-calories" placeholder="e.g., 2000" value="2000">
+                        <input type="number" id="daily-calories" placeholder="e.g., 2200" value="2000">
                     </div>
 
-                    <div class="toggle-container">
-                        <button class="toggle-btn active" id="percentage-toggle" onclick="toggleMacroType('percentage')">Percentage</button>
-                        <button class="toggle-btn" id="grams-toggle" onclick="toggleMacroType('grams')">Grams</button>
-                    </div>
-
-                    <div id="percentage-inputs">
-                        <div class="input-group">
-                            <label>Carbs %</label>
-                            <input type="number" id="carbs-percent" value="40">
-                        </div>
-                        <div class="input-group">
-                            <label>Protein %</label>
-                            <input type="number" id="protein-percent" value="30">
-                        </div>
-                        <div class="input-group">
-                            <label>Fat %</label>
-                            <input type="number" id="fat-percent" value="30">
-                        </div>
-                    </div>
-
-                    <div id="grams-inputs" style="display: none;">
+                    <div class="row">
                         <div class="input-group">
                             <label>Carbs (g)</label>
                             <input type="number" id="carbs-grams" value="250">
@@ -1258,6 +1236,8 @@
                             <input type="number" id="fat-grams" value="67">
                         </div>
                     </div>
+
+                    <small style="color:#666; display:block; margin-top:6px;">You can calculate these automatically, then override them manually if you want.</small>
                 </div>
 
                 <div class="card">
@@ -1276,7 +1256,7 @@
                     </div>
                     <div class="input-group">
                         <label>Health Goals</label>
-                        <textarea id="health-goals" rows="3" placeholder="e.g., Heart health, Lower cholesterol"></textarea>
+                        <textarea id="health-goals" rows="3" placeholder="e.g., Fat loss, better energy, lower cholesterol"></textarea>
                     </div>
                 </div>
 
@@ -2064,164 +2044,32 @@ function updateDateLabel() {
 }
 
 function toggleMacroType(type) {
-    const percentageInputs = document.getElementById('percentage-inputs');
-    const gramsInputs = document.getElementById('grams-inputs');
-    const percentageToggle = document.getElementById('percentage-toggle');
-    const gramsToggle = document.getElementById('grams-toggle');
-    
-    if (type === 'percentage') {
-        percentageInputs.style.display = 'block';
-        gramsInputs.style.display = 'none';
-        percentageToggle.classList.add('active');
-        gramsToggle.classList.remove('active');
-    } else {
-        percentageInputs.style.display = 'none';
-        gramsInputs.style.display = 'block';
-        percentageToggle.classList.remove('active');
-        gramsToggle.classList.add('active');
-    }
-    userProfile.macroType = type;
+    userProfile.macroType = type || 'grams';
 }
 
 function toggleUnits(units) {
+    currentUnit = units;
+    userProfile.units = units;
+
     const imperialInputs = document.getElementById('imperial-inputs');
     const metricInputs = document.getElementById('metric-inputs');
     const imperialToggle = document.getElementById('imperial-toggle');
     const metricToggle = document.getElementById('metric-toggle');
-    
+
     if (units === 'imperial') {
-        imperialInputs.style.display = 'block';
-        metricInputs.style.display = 'none';
-        imperialToggle.classList.add('active');
-        metricToggle.classList.remove('active');
-        
-        // Convert metric to imperial if metric values exist
-        const kgWeight = parseFloat(document.getElementById('weight-kg').value);
-        const kgTarget = parseFloat(document.getElementById('target-weight-kg').value);
-        const cmHeight = parseFloat(document.getElementById('height-cm').value);
-        
-        if (!isNaN(kgWeight)) {
-            document.getElementById('weight-lbs').value = (kgWeight * 2.20462).toFixed(1);
-        }
-        if (!isNaN(kgTarget)) {
-            document.getElementById('target-weight-lbs').value = (kgTarget * 2.20462).toFixed(1);
-        }
-        if (!isNaN(cmHeight)) {
-            const totalInches = cmHeight / 2.54;
-            const feet = Math.floor(totalInches / 12);
-            const inches = (totalInches % 12).toFixed(1);
-            document.getElementById('height-feet').value = feet;
-            document.getElementById('height-inches').value = inches;
-        }
+        if (imperialInputs) imperialInputs.style.display = 'block';
+        if (metricInputs) metricInputs.style.display = 'none';
+        if (imperialToggle) imperialToggle.classList.add('active');
+        if (metricToggle) metricToggle.classList.remove('active');
     } else {
-        imperialInputs.style.display = 'none';
-        metricInputs.style.display = 'block';
-        imperialToggle.classList.remove('active');
-        metricToggle.classList.add('active');
-        
-        // Convert imperial to metric if imperial values exist
-        const lbsWeight = parseFloat(document.getElementById('weight-lbs').value);
-        const lbsTarget = parseFloat(document.getElementById('target-weight-lbs').value);
-        const feet = parseFloat(document.getElementById('height-feet').value);
-        const inches = parseFloat(document.getElementById('height-inches').value);
-        
-        if (!isNaN(lbsWeight)) {
-            document.getElementById('weight-kg').value = (lbsWeight / 2.20462).toFixed(1);
-        }
-        if (!isNaN(lbsTarget)) {
-            document.getElementById('target-weight-kg').value = (lbsTarget / 2.20462).toFixed(1);
-        }
-        if (!isNaN(feet) && !isNaN(inches)) {
-            const totalInches = (feet * 12) + inches;
-            document.getElementById('height-cm').value = (totalInches * 2.54).toFixed(1);
-        }
+        if (imperialInputs) imperialInputs.style.display = 'none';
+        if (metricInputs) metricInputs.style.display = 'block';
+        if (imperialToggle) imperialToggle.classList.remove('active');
+        if (metricToggle) metricToggle.classList.add('active');
     }
-    userProfile.units = units;
 }
 
-function calculateCalories() {
-    const gender = document.getElementById('user-gender').value;
-    const age = parseFloat(document.getElementById('user-age').value);
-    const activityLevel = parseFloat(document.getElementById('activity-level').value);
-    
-    if (!gender || !age) {
-        alert('Please enter your gender and age first!');
-        return;
-    }
-    
-    let weightKg, heightCm;
-    
-    // Get weight and height in metric (convert if needed)
-    if (userProfile.units === 'imperial') {
-        const lbs = parseFloat(document.getElementById('weight-lbs').value);
-        const feet = parseFloat(document.getElementById('height-feet').value);
-        const inches = parseFloat(document.getElementById('height-inches').value);
-        
-        if (isNaN(lbs) || isNaN(feet) || isNaN(inches)) {
-            alert('Please fill in your weight and height!');
-            return;
-        }
-        
-        weightKg = lbs / 2.20462;
-        heightCm = ((feet * 12) + inches) * 2.54;
-    } else {
-        weightKg = parseFloat(document.getElementById('weight-kg').value);
-        heightCm = parseFloat(document.getElementById('height-cm').value);
-        
-        if (isNaN(weightKg) || isNaN(heightCm)) {
-            alert('Please fill in your weight and height!');
-            return;
-        }
-    }
-    
-    // Mifflin-St Jeor Formula
-    let bmr;
-    if (gender === 'male') {
-        bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) + 5;
-    } else {
-        bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) - 161;
-    }
-    
-    // TDEE = BMR × Activity Level
-    const tdee = bmr * activityLevel;
-    
-    // Store results
-    userProfile.bmr = Math.round(bmr);
-    userProfile.tdee = Math.round(tdee);
-    
-    // Display in modal
-    const content = `
-        <div style="padding: 20px 0;">
-            <div style="margin-bottom: 20px; padding: 20px; background: #E8F5E9; border-radius: 10px;">
-                <div style="margin-bottom: 15px;">
-                    <strong style="color: #4CAF50; font-size: 16px;">BMR (Basal Metabolic Rate)</strong>
-                    <div style="color: #666; font-size: 13px; margin-top: 4px;">Calories burned at rest</div>
-                    <div style="font-size: 32px; color: #4CAF50; font-weight: bold; margin-top: 8px;">${Math.round(bmr)} cal/day</div>
-                </div>
-            </div>
-            
-            <div style="padding: 20px; background: #C8E6C9; border-radius: 10px;">
-                <div>
-                    <strong style="color: #2E7D32; font-size: 16px;">TDEE (Total Daily Energy Expenditure)</strong>
-                    <div style="color: #666; font-size: 13px; margin-top: 4px;">Calories burned per day (including activity)</div>
-                    <div style="font-size: 36px; color: #2E7D32; font-weight: bold; margin-top: 8px;">${Math.round(tdee)} cal/day</div>
-                </div>
-            </div>
-            
-            <div style="margin-top: 20px; padding: 15px; background: #F5F5F5; border-radius: 8px; border-left: 4px solid #3B82F6;">
-                <div style="font-size: 14px; color: #666; line-height: 1.6;">
-                    💡 <strong>Quick Guide:</strong><br>
-                    • Weight loss: TDEE - 300-500 calories<br>
-                    • Weight gain: TDEE + 300-500 calories<br>
-                    • Maintenance: Match your TDEE
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.getElementById('calorie-results-content').innerHTML = content;
-    document.getElementById('calorie-results-modal').classList.add('show');
-}
+
 
 function closeCalorieModal() {
     document.getElementById('calorie-results-modal').classList.remove('show');
@@ -2258,81 +2106,7 @@ function applyGoalEngine() {
 }
 
 
-function calculateSuggestedCalories() {
-    const age = parseFloat(document.getElementById('user-age')?.value);
-    const gender = document.getElementById('user-gender')?.value;
-    const activity = document.getElementById('activity-level')?.value;
 
-    let weightKg = null;
-    let heightCm = null;
-
-    if (currentUnit === 'imperial') {
-        const weightLbsRaw = document.getElementById('current-weight')?.value;
-        const feetRaw = document.getElementById('height-feet')?.value;
-        const inchesRaw = document.getElementById('height-inches')?.value;
-
-        const weightLbs = weightLbsRaw === '' ? NaN : parseFloat(weightLbsRaw);
-        const feet = feetRaw === '' ? NaN : parseFloat(feetRaw);
-        const inches = inchesRaw === '' ? NaN : parseFloat(inchesRaw);
-
-        if (Number.isNaN(weightLbs) || Number.isNaN(feet) || Number.isNaN(inches)) {
-            alert('Please fill in your weight and height!');
-            return;
-        }
-
-        weightKg = weightLbs * 0.45359237;
-        heightCm = ((feet * 12) + inches) * 2.54;
-    } else {
-        const weightMetricRaw = document.getElementById('current-weight-metric')?.value;
-        const heightMetricRaw = document.getElementById('height-metric')?.value;
-
-        const weightMetric = weightMetricRaw === '' ? NaN : parseFloat(weightMetricRaw);
-        const heightMetric = heightMetricRaw === '' ? NaN : parseFloat(heightMetricRaw);
-
-        if (Number.isNaN(weightMetric) || Number.isNaN(heightMetric)) {
-            alert('Please fill in your weight and height!');
-            return;
-        }
-
-        weightKg = weightMetric;
-        heightCm = heightMetric;
-    }
-
-    if (!age || !gender || !activity) {
-        alert('Please complete age, gender, and activity level.');
-        return;
-    }
-
-    let bmr = 0;
-    if (gender === 'male') {
-        bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) + 5;
-    } else {
-        bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) - 161;
-    }
-
-    const activityMap = {
-        sedentary: 1.2,
-        lightly_active: 1.375,
-        moderately_active: 1.55,
-        very_active: 1.725,
-        extremely_active: 1.9
-    };
-    const multiplier = activityMap[activity] || 1.55;
-    const tdee = Math.round(bmr * multiplier);
-
-    userProfile.bmr = Math.round(bmr);
-    userProfile.tdee = tdee;
-
-    const goalRaw = (document.getElementById('goal-type')?.value || '').toLowerCase();
-    let targetCalories = tdee;
-    if (goalRaw.includes('loss') || goalRaw.includes('cut')) targetCalories = Math.max(1200, tdee - 500);
-    if (goalRaw.includes('gain') || goalRaw.includes('bulk')) targetCalories = tdee + 300;
-
-    const calInput = document.getElementById('daily-calories');
-    if (calInput) calInput.value = Math.round(targetCalories);
-
-    calculateSuggestedMacros();
-}
 
 function closeCalorieSuggestionsModal() {
     document.getElementById('calorie-suggestions-modal').classList.remove('show');
@@ -2354,25 +2128,7 @@ function applySuggestedCalories() {
     alert(`Calorie goal set to ${suggestedCalories}! Now click "Calculate My Targets" to get your macro split, then "Save Profile".`);
 }
 
-function calculateSuggestedMacros() {
-    const calories = parseFloat(document.getElementById('daily-calories')?.value);
-    if (!calories) {
-        alert('Please calculate or enter your daily calories first.');
-        return;
-    }
 
-    const proteinG = Math.round((calories * 0.28) / 4);
-    const fatG = Math.round((calories * 0.22) / 9);
-    const carbG = Math.round((calories - (proteinG * 4) - (fatG * 9)) / 4);
-
-    const carbsInput = document.getElementById('carbs-grams');
-    const proteinInput = document.getElementById('protein-grams');
-    const fatInput = document.getElementById('fat-grams');
-
-    if (carbsInput) carbsInput.value = carbG;
-    if (proteinInput) proteinInput.value = proteinG;
-    if (fatInput) fatInput.value = fatG;
-}
 
 function closeMacroSuggestionsModal() {
     document.getElementById('macro-suggestions-modal').classList.remove('show');
@@ -2398,35 +2154,135 @@ function applySuggestedMacros() {
     alert('Macros applied! Remember to click "Save Profile" at the bottom to save your settings.');
 }
 
-async function saveProfile() {
+async 
+function calculateProfileTargets() {
+    const gender = document.getElementById('user-gender')?.value;
+    const age = parseFloat(document.getElementById('user-age')?.value);
+    const activityLevel = parseFloat(document.getElementById('activity-level')?.value);
+    const goalType = document.getElementById('goal-type')?.value || 'maintain';
+
+    let weightKg = null;
+    let heightCm = null;
+
+    if (currentUnit === 'imperial') {
+        const weightLbs = parseFloat(document.getElementById('weight-lbs')?.value);
+        const feet = parseFloat(document.getElementById('height-feet')?.value);
+        const inchesRaw = document.getElementById('height-inches')?.value;
+        const inches = inchesRaw === '' ? NaN : parseFloat(inchesRaw);
+
+        if (Number.isNaN(weightLbs) || Number.isNaN(feet) || Number.isNaN(inches)) {
+            alert('Please fill in your weight and height!');
+            return;
+        }
+
+        weightKg = weightLbs / 2.20462;
+        heightCm = ((feet * 12) + inches) * 2.54;
+    } else {
+        const weightMetric = parseFloat(document.getElementById('weight-kg')?.value);
+        const heightMetric = parseFloat(document.getElementById('height-cm')?.value);
+
+        if (Number.isNaN(weightMetric) || Number.isNaN(heightMetric)) {
+            alert('Please fill in your weight and height!');
+            return;
+        }
+
+        weightKg = weightMetric;
+        heightCm = heightMetric;
+    }
+
+    if (!gender || Number.isNaN(age) || Number.isNaN(activityLevel)) {
+        alert('Please enter your gender, age, and activity level first!');
+        return;
+    }
+
+    let bmr = 0;
+    if (gender === 'male') {
+        bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) + 5;
+    } else {
+        bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) - 161;
+    }
+
+    const tdee = Math.round(bmr * activityLevel);
+    let targetCalories = tdee;
+
+    if (goalType === 'cut') targetCalories = Math.max(1200, tdee - 500);
+    if (goalType === 'bulk') targetCalories = tdee + 300;
+
+    const protein = Math.round((targetCalories * 0.28) / 4);
+    const fat = Math.round((targetCalories * 0.22) / 9);
+    const carbs = Math.round((targetCalories - (protein * 4) - (fat * 9)) / 4);
+
+    document.getElementById('daily-calories').value = targetCalories;
+    document.getElementById('carbs-grams').value = carbs;
+    document.getElementById('protein-grams').value = protein;
+    document.getElementById('fat-grams').value = fat;
+
+    userProfile.bmr = Math.round(bmr);
+    userProfile.tdee = tdee;
+}
+
+function calculateCalories() {
+    calculateProfileTargets();
+}
+
+function calculateSuggestedCalories() {
+    calculateProfileTargets();
+}
+
+function calculateSuggestedMacros() {
+    calculateProfileTargets();
+}
+
+function saveProfile() {
     userProfile.name = document.getElementById('user-name')?.value || '';
     userProfile.gender = document.getElementById('user-gender')?.value || '';
     userProfile.age = parseFloat(document.getElementById('user-age')?.value) || null;
-    userProfile.activityLevel = document.getElementById('activity-level')?.value || '';
+    userProfile.units = currentUnit;
+    userProfile.activityLevel = parseFloat(document.getElementById('activity-level')?.value) || 1.55;
     userProfile.goalType = document.getElementById('goal-type')?.value || 'maintain';
 
-    if (currentUnit === 'imperial') {
-        userProfile.currentWeight = parseFloat(document.getElementById('current-weight')?.value) || null;
-        userProfile.targetWeight = parseFloat(document.getElementById('target-weight')?.value) || null;
-        userProfile.heightFeet = parseFloat(document.getElementById('height-feet')?.value) || null;
-        userProfile.heightInches = document.getElementById('height-inches')?.value === '' ? null : parseFloat(document.getElementById('height-inches')?.value);
-        userProfile.heightCm = (userProfile.heightFeet !== null && userProfile.heightInches !== null && !Number.isNaN(userProfile.heightFeet) && !Number.isNaN(userProfile.heightInches))
-            ? ((userProfile.heightFeet * 12) + userProfile.heightInches) * 2.54
-            : null;
-    } else {
-        userProfile.currentWeightMetric = parseFloat(document.getElementById('current-weight-metric')?.value) || null;
-        userProfile.targetWeightMetric = parseFloat(document.getElementById('target-weight-metric')?.value) || null;
-        userProfile.heightMetric = parseFloat(document.getElementById('height-metric')?.value) || null;
-        userProfile.heightCm = userProfile.heightMetric || null;
-    }
+    const weightLbs = parseFloat(document.getElementById('weight-lbs')?.value);
+    const targetWeightLbs = parseFloat(document.getElementById('target-weight-lbs')?.value);
+    const heightFeet = parseFloat(document.getElementById('height-feet')?.value);
+    const heightInchesRaw = document.getElementById('height-inches')?.value;
+    const heightInches = heightInchesRaw === '' ? null : parseFloat(heightInchesRaw);
+
+    const weightKg = parseFloat(document.getElementById('weight-kg')?.value);
+    const targetWeightKg = parseFloat(document.getElementById('target-weight-kg')?.value);
+    const heightCmMetric = parseFloat(document.getElementById('height-cm')?.value);
+
+    userProfile.weight = {
+        imperial: Number.isNaN(weightLbs) ? null : weightLbs,
+        metric: Number.isNaN(weightKg) ? (Number.isNaN(weightLbs) ? null : +(weightLbs / 2.20462).toFixed(1)) : weightKg
+    };
+    userProfile.targetWeight = {
+        imperial: Number.isNaN(targetWeightLbs) ? null : targetWeightLbs,
+        metric: Number.isNaN(targetWeightKg) ? (Number.isNaN(targetWeightLbs) ? null : +(targetWeightLbs / 2.20462).toFixed(1)) : targetWeightKg
+    };
+    userProfile.height = {
+        feet: Number.isNaN(heightFeet) ? null : heightFeet,
+        inches: heightInches,
+        cm: Number.isNaN(heightCmMetric) ? ((Number.isNaN(heightFeet) || heightInches === null || Number.isNaN(heightInches)) ? null : +((((heightFeet * 12) + heightInches) * 2.54).toFixed(1))) : heightCmMetric
+    };
 
     userProfile.dailyCalories = parseFloat(document.getElementById('daily-calories')?.value) || 2000;
-    userProfile.carbs = parseFloat(document.getElementById('carbs-grams')?.value) || 250;
-    userProfile.protein = parseFloat(document.getElementById('protein-grams')?.value) || 150;
-    userProfile.fat = parseFloat(document.getElementById('fat-grams')?.value) || 67;
-    userProfile.dietType = document.getElementById('diet-type')?.value || '';
-    userProfile.allergies = document.getElementById('allergies')?.value || '';
-    userProfile.preferences = document.getElementById('food-preferences')?.value || '';
+    userProfile.macros = {
+        carbs: parseFloat(document.getElementById('carbs-grams')?.value) || 250,
+        protein: parseFloat(document.getElementById('protein-grams')?.value) || 150,
+        fat: parseFloat(document.getElementById('fat-grams')?.value) || 67
+    };
+
+    // Keep flat compatibility for existing dashboard/planner code if any remains
+    userProfile.carbs = userProfile.macros.carbs;
+    userProfile.protein = userProfile.macros.protein;
+    userProfile.fat = userProfile.macros.fat;
+
+    userProfile.preferences = {
+        dietType: document.getElementById('diet-type')?.value || '',
+        allergies: document.getElementById('allergies')?.value || '',
+        dislikes: document.getElementById('dislikes')?.value || '',
+        healthGoals: document.getElementById('health-goals')?.value || ''
+    };
 
     localStorage.setItem('userProfile', JSON.stringify(userProfile));
     if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
@@ -2445,47 +2301,38 @@ function loadProfile() {
     const saved = localStorage.getItem('userProfile');
     if (saved) {
         userProfile = JSON.parse(saved);
-        
-        // Load personal info
-        document.getElementById('user-name').value = userProfile.name || '';
-        document.getElementById('user-gender').value = userProfile.gender || '';
-        document.getElementById('user-age').value = userProfile.age || '';
-        document.getElementById('activity-level').value = userProfile.activityLevel || 1.55;
-        
-        // Load units preference and toggle
-        if (userProfile.units === 'metric') {
-            toggleUnits('metric');
-        }
-        
-        // Load weight and height
-        if (userProfile.units === 'imperial') {
-            document.getElementById('weight-lbs').value = userProfile.weight.imperial || '';
-            document.getElementById('target-weight-lbs').value = userProfile.targetWeight.imperial || '';
-            document.getElementById('height-feet').value = userProfile.height.feet || '';
-            document.getElementById('height-inches').value = userProfile.height.inches || '';
-        } else {
-            document.getElementById('weight-kg').value = userProfile.weight.metric || '';
-            document.getElementById('target-weight-kg').value = userProfile.targetWeight.metric || '';
-            document.getElementById('height-cm').value = userProfile.height.cm || '';
-        }
-        
-        // BMR/TDEE are now calculated and stored, shown in modals when requested
-        
-        // Load daily calories and macros
-        document.getElementById('daily-calories').value = userProfile.dailyCalories;
-        if (userProfile.macroType === 'grams') {
-            toggleMacroType('grams');
-            document.getElementById('carbs-grams').value = userProfile.macros.carbs;
-            document.getElementById('protein-grams').value = userProfile.macros.protein;
-            document.getElementById('fat-grams').value = userProfile.macros.fat;
-        }
-        if (userProfile.preferences) {
-            document.getElementById('diet-type').value = userProfile.preferences.dietType || '';
-            document.getElementById('allergies').value = userProfile.preferences.allergies?.join(', ') || '';
-            document.getElementById('dislikes').value = userProfile.preferences.dislikes?.join(', ') || '';
-            document.getElementById('health-goals').value = userProfile.preferences.healthGoals?.join(', ') || '';
-        }
     }
+
+    document.getElementById('user-name').value = userProfile.name || '';
+    document.getElementById('user-gender').value = userProfile.gender || '';
+    document.getElementById('user-age').value = userProfile.age || '';
+    document.getElementById('activity-level').value = userProfile.activityLevel || 1.55;
+    document.getElementById('goal-type').value = userProfile.goalType || 'maintain';
+
+    currentUnit = userProfile.units || 'imperial';
+    toggleUnits(currentUnit);
+
+    document.getElementById('weight-lbs').value = userProfile.weight?.imperial ?? '';
+    document.getElementById('target-weight-lbs').value = userProfile.targetWeight?.imperial ?? '';
+    document.getElementById('height-feet').value = userProfile.height?.feet ?? '';
+    document.getElementById('height-inches').value = userProfile.height?.inches ?? '';
+
+    document.getElementById('weight-kg').value = userProfile.weight?.metric ?? '';
+    document.getElementById('target-weight-kg').value = userProfile.targetWeight?.metric ?? '';
+    document.getElementById('height-cm').value = userProfile.height?.cm ?? '';
+
+    document.getElementById('daily-calories').value = userProfile.dailyCalories || 2000;
+    document.getElementById('carbs-grams').value = userProfile.macros?.carbs || userProfile.carbs || 250;
+    document.getElementById('protein-grams').value = userProfile.macros?.protein || userProfile.protein || 150;
+    document.getElementById('fat-grams').value = userProfile.macros?.fat || userProfile.fat || 67;
+
+    document.getElementById('diet-type').value = userProfile.preferences?.dietType || '';
+    document.getElementById('allergies').value = userProfile.preferences?.allergies || '';
+    document.getElementById('dislikes').value = userProfile.preferences?.dislikes || '';
+    document.getElementById('health-goals').value = userProfile.preferences?.healthGoals || '';
+
+    const sync = document.getElementById('sync-status');
+    if (sync) sync.textContent = '✓ Synced';
 }
 
 // Food Search Functions
@@ -3173,9 +3020,9 @@ function updateDashboard() {
     const plannedFat = plannedMeals.reduce((sum, m) => sum + ((Number(m.fat) || 0) * (Number(m.servings || 1))), 0);
 
     const targetCalories = Number(userProfile.dailyCalories) || 2000;
-    const targetCarbs = Number(userProfile.carbs) || 250;
-    const targetProtein = Number(userProfile.protein) || 150;
-    const targetFat = Number(userProfile.fat) || 67;
+    const targetCarbs = Number(userProfile.macros?.carbs ?? userProfile.carbs) || 250;
+    const targetProtein = Number(userProfile.macros?.protein ?? userProfile.protein) || 150;
+    const targetFat = Number(userProfile.macros?.fat ?? userProfile.fat) || 67;
 
     const calPct = Math.min(100, Math.round((actualCalories / targetCalories) * 100 || 0));
 
@@ -3922,6 +3769,7 @@ function loadShoppingList() {
 const BACKEND_URL = 'https://foodtracker-backend.onrender.com';
 let healthChatHistory = [];
 let detectedPreferences = [];
+let currentUnit = 'imperial';
 let lastLoggedFoodId = null;
 
 let backendWarmed = false;
