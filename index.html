@@ -1116,7 +1116,7 @@
                 </div>
 
                 <div class="card">
-                    <h3>Selected Date Activity</h3>
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;"><h3>Selected Date Activity</h3><button class="btn btn-sm btn-secondary" onclick="copySelectedDateActivity()">Copy This Day</button></div>
                     <div id="today-meals"></div>
                 </div>
 
@@ -1385,7 +1385,7 @@
 
             <!-- Food Log Section -->
             <div id="foodlog" class="section">
-                <h2 class="section-title">Food Log</h2>
+                <h2 class="section-title">Food Library & Manual Log</h2>
                 
                 <div class="card">
                     <h3>🔍 Search Food Database</h3>
@@ -2236,6 +2236,34 @@ function closeCalorieModal() {
 let suggestedMacros = null; // Store suggested macros for applying later
 let suggestedCalories = null; // Store suggested calories for applying later
 
+
+function applyGoalEngine() {
+    const goalType = document.getElementById('goal-engine-type')?.value || 'maintain';
+    const change = parseFloat(document.getElementById('goal-engine-change')?.value) || 0;
+    const weeks = parseFloat(document.getElementById('goal-engine-weeks')?.value) || 0;
+
+    if (!userProfile.tdee) {
+        alert('Please calculate your TDEE first in Personal Information.');
+        return;
+    }
+
+    let targetCalories = userProfile.tdee;
+    let dailyAdjustment = 0;
+
+    if (goalType === 'cut' && change > 0 && weeks > 0) {
+        dailyAdjustment = Math.round((change * 3500) / (weeks * 7));
+        targetCalories = Math.max(1200, userProfile.tdee - dailyAdjustment);
+    } else if (goalType === 'bulk' && change > 0 && weeks > 0) {
+        dailyAdjustment = Math.round((change * 3500) / (weeks * 7));
+        targetCalories = userProfile.tdee + dailyAdjustment;
+    }
+
+    document.getElementById('daily-calories').value = Math.round(targetCalories);
+    calculateSuggestedMacros();
+    alert(`Goal target applied: ${Math.round(targetCalories)} calories/day`);
+}
+
+
 function calculateSuggestedCalories() {
     const goalType = document.getElementById('goal-type').value;
     
@@ -2618,7 +2646,7 @@ function applySuggestedMacros() {
     alert('Macros applied! Remember to click "Save Profile" at the bottom to save your settings.');
 }
 
-function saveProfile() {
+async function saveProfile() {
     // Personal info
     userProfile.name = document.getElementById('user-name').value;
     userProfile.gender = document.getElementById('user-gender').value;
@@ -3118,11 +3146,104 @@ function hardResetPlannerData() {
     assignedMeals = [];
     saveGeneratedMeals();
     saveMeals();
+    saveToLocalStorage();
     updateGeneratedMealsDisplay();
     updateDashboard();
     updateWeekView();
     alert('Planner data reset.');
 }
+
+
+function chooseCopyDate(defaultDate = null) {
+    const input = prompt('Copy to which date? Use YYYY-MM-DD, or type tomorrow / day after', defaultDate || '');
+    if (!input) return null;
+    const raw = input.trim().toLowerCase();
+
+    if (raw === 'tomorrow') {
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        return d.toISOString().split('T')[0];
+    }
+
+    if (raw === 'day after' || raw === 'day after tomorrow') {
+        const d = new Date();
+        d.setDate(d.getDate() + 2);
+        return d.toISOString().split('T')[0];
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+
+    alert('Please enter a valid date in YYYY-MM-DD format.');
+    return null;
+}
+
+
+function copySelectedDateActivity() {
+    const sourceDate = currentViewDate || new Date().toISOString().split('T')[0];
+    const targetDate = chooseCopyDate();
+    if (!targetDate) return;
+    if (targetDate === sourceDate) {
+        alert('Choose a different target date.');
+        return;
+    }
+
+    const foodsToCopy = foodLog.filter(f => f.date === sourceDate);
+    const mealsToCopy = assignedMeals.filter(m => m.date === sourceDate);
+
+    if (foodsToCopy.length === 0 && mealsToCopy.length === 0) {
+        alert('There is nothing on this day to copy.');
+        return;
+    }
+
+    foodsToCopy.forEach(food => {
+        foodLog.push({
+            ...food,
+            id: Date.now() + Math.floor(Math.random() * 1000000) + Math.floor(Math.random() * 1000),
+            date: targetDate,
+            timestamp: new Date().toLocaleTimeString()
+        });
+    });
+
+    mealsToCopy.forEach(meal => {
+        assignedMeals.push({
+            ...meal,
+            id: Date.now() + Math.floor(Math.random() * 1000000) + Math.floor(Math.random() * 1000),
+            date: targetDate,
+            completed: false,
+            completedAt: null
+        });
+    });
+
+    cleanupAssignedMeals();
+    saveFoodLog();
+    saveMeals();
+    updateFoodLogDisplay();
+    updateDashboard();
+    updateWeekView();
+    alert(`Copied this day to ${targetDate}`);
+}
+
+function copyFoodLogEntry(foodId) {
+    const food = foodLog.find(f => f.id === foodId);
+    if (!food) return;
+
+    const targetDate = chooseCopyDate();
+    if (!targetDate) return;
+
+    const copied = {
+        ...food,
+        id: Date.now() + Math.floor(Math.random() * 100000),
+        date: targetDate,
+        timestamp: new Date().toLocaleTimeString()
+    };
+
+    foodLog.push(copied);
+    saveFoodLog();
+    updateFoodLogDisplay();
+    updateDashboard();
+    alert(`Copied to ${targetDate}`);
+}
+
 
 function addFood() {
     const name = document.getElementById('food-name').value.trim();
@@ -3281,57 +3402,91 @@ function updateFoodLogDisplay() {
     const listElement = document.getElementById('food-log-list');
     const dashboardListElement = document.getElementById('today-food-list');
 
-    const foodHtml = foodsForDate.map(food => `
-        <div class="food-log-item">
-            <div>
-                <h4>${food.name} <span style="color: #4CAF50; font-size: 14px;">(logged)</span></h4>
-                <p>${Math.round(food.calories)} cal | C: ${Math.round(food.carbs * 10) / 10}g | P: ${Math.round(food.protein * 10) / 10}g | F: ${Math.round(food.fat * 10) / 10}g</p>
-                <p style="font-size: 12px; color: #999;">${food.timestamp || ''}</p>
-            </div>
-            <div style="display: flex; gap: 8px;">
-                <button class="btn btn-sm btn-secondary" onclick="editFood(${food.id})">Edit</button>
-                <button class="delete-btn" onclick="deleteFood(${food.id})">Delete</button>
-            </div>
+    const foodsSection = foodsForDate.length ? `
+        <div style="margin-bottom: 14px;">
+            <h4 style="color:#475569; margin-bottom:10px;">Logged Foods</h4>
+            ${foodsForDate.map(food => `
+                <div class="food-log-item">
+                    <div>
+                        <h4>${food.name} <span style="color: #4CAF50; font-size: 14px;">(logged)</span></h4>
+                        <p>${Math.round(food.calories)} cal | C: ${Math.round(food.carbs * 10) / 10}g | P: ${Math.round(food.protein * 10) / 10}g | F: ${Math.round(food.fat * 10) / 10}g</p>
+                        <p style="font-size: 12px; color: #999;">${food.timestamp || ''}</p>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap:wrap;">
+                        <button class="btn btn-sm btn-secondary" onclick="editFood(${food.id})">Edit</button>
+                        <button class="btn btn-sm" onclick="copyFoodLogEntry(${food.id})">Copy</button>
+                        <button class="delete-btn" onclick="deleteFood(${food.id})">Delete</button>
+                    </div>
+                </div>
+            `).join('')}
         </div>
-    `).join('');
+    ` : '';
 
-    const completedMealHtml = completedMealsForDate.map(meal => {
-        const servings = meal.completedServings || meal.servings || 1;
-        return `
-            <div class="food-log-item">
-                <div>
-                    <h4>${meal.name} <span style="color: #4CAF50; font-size: 14px;">(eaten from plan)</span></h4>
-                    <p>${Math.round((meal.calories || 0) * servings)} cal | C: ${Math.round((meal.carbs || 0) * servings * 10) / 10}g | P: ${Math.round((meal.protein || 0) * servings * 10) / 10}g | F: ${Math.round((meal.fat || 0) * servings * 10) / 10}g</p>
-                    <p style="font-size: 12px; color: #999;">${meal.completedAt ? 'Eaten at ' + meal.completedAt : ''}</p>
-                </div>
-            </div>
-        `;
-    }).join('');
+    const completedMealsSection = completedMealsForDate.length ? `
+        <div style="margin-bottom: 14px;">
+            <h4 style="color:#475569; margin-bottom:10px;">Completed Meals</h4>
+            ${completedMealsForDate.map(meal => {
+                const servings = meal.completedServings || meal.servings || 1;
+                return `
+                    <div class="food-log-item">
+                        <div>
+                            <h4>${meal.name} <span style="color: #4CAF50; font-size: 14px;">(eaten from plan)</span></h4>
+                            <p>${Math.round((meal.calories || 0) * servings)} cal | C: ${Math.round((meal.carbs || 0) * servings * 10) / 10}g | P: ${Math.round((meal.protein || 0) * servings * 10) / 10}g | F: ${Math.round((meal.fat || 0) * servings * 10) / 10}g</p>
+                            <p style="font-size: 12px; color: #999;">${meal.completedAt ? 'Eaten at ' + meal.completedAt : ''}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    ` : '';
 
-    const plannedMealHtml = plannedMealsForDate.map(meal => {
-        const servings = meal.servings || 1;
-        return `
-            <div class="food-log-item">
-                <div>
-                    <h4>${meal.name} <span style="color: #64748B; font-size: 14px;">(planned)</span></h4>
-                    <p>${Math.round((meal.calories || 0) * servings)} cal | C: ${Math.round((meal.carbs || 0) * servings * 10) / 10}g | P: ${Math.round((meal.protein || 0) * servings * 10) / 10}g | F: ${Math.round((meal.fat || 0) * servings * 10) / 10}g</p>
-                    <p style="font-size: 12px; color: #999;">${meal.time || 'No time set'}</p>
-                </div>
-            </div>
-        `;
-    }).join('');
+    const plannedMealsSection = plannedMealsForDate.length ? `
+        <div>
+            <h4 style="color:#475569; margin-bottom:10px;">Planned Meals</h4>
+            ${plannedMealsForDate.map(meal => {
+                const servings = meal.servings || 1;
+                return `
+                    <div class="food-log-item">
+                        <div>
+                            <h4>${meal.name} <span style="color: #64748B; font-size: 14px;">(planned)</span></h4>
+                            <p>${Math.round((meal.calories || 0) * servings)} cal | C: ${Math.round((meal.carbs || 0) * servings * 10) / 10}g | P: ${Math.round((meal.protein || 0) * servings * 10) / 10}g | F: ${Math.round((meal.fat || 0) * servings * 10) / 10}g</p>
+                            <p style="font-size: 12px; color: #999;">${meal.time || 'No time set'}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    ` : '';
 
-    const combinedHtml = foodHtml + completedMealHtml + plannedMealHtml;
+    const dashboardHtml = foodsSection + completedMealsSection + plannedMealsSection;
 
-    if (!combinedHtml) {
+    if (!dashboardHtml) {
         const emptyMsg = '<p style="color: #999; text-align: center; padding: 20px;">No foods or meals for this date yet.</p>';
-        listElement.innerHTML = emptyMsg;
-        dashboardListElement.innerHTML = emptyMsg;
+        if (listElement) listElement.innerHTML = emptyMsg;
+        if (dashboardListElement) dashboardListElement.innerHTML = emptyMsg;
         return;
     }
 
-    listElement.innerHTML = foodHtml || '<p style="color: #999; text-align: center; padding: 20px;">No manually logged foods for this date.</p>';
-    dashboardListElement.innerHTML = combinedHtml;
+    if (listElement) {
+        listElement.innerHTML = foodsForDate.length ? foodsForDate.map(food => `
+            <div class="food-log-item">
+                <div>
+                    <h4>${food.name} <span style="color: #4CAF50; font-size: 14px;">(logged)</span></h4>
+                    <p>${Math.round(food.calories)} cal | C: ${Math.round(food.carbs * 10) / 10}g | P: ${Math.round(food.protein * 10) / 10}g | F: ${Math.round(food.fat * 10) / 10}g</p>
+                    <p style="font-size: 12px; color: #999;">${food.timestamp || ''}</p>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap:wrap;">
+                    <button class="btn btn-sm btn-secondary" onclick="editFood(${food.id})">Edit</button>
+                    <button class="btn btn-sm" onclick="copyFoodLogEntry(${food.id})">Copy</button>
+                    <button class="delete-btn" onclick="deleteFood(${food.id})">Delete</button>
+                </div>
+            </div>
+        `).join('') : '<p style="color: #999; text-align: center; padding: 20px;">No manually logged foods for this date.</p>';
+    }
+
+    if (dashboardListElement) {
+        dashboardListElement.innerHTML = dashboardHtml;
+    }
 }
 
 function updateDashboard() {
@@ -3383,7 +3538,7 @@ function updateDashboard() {
     document.getElementById('protein-goal').textContent = `Goal: ${userProfile.macros.protein}g`;
     
     document.getElementById('fat-actual').textContent = Math.round(actualFat) + 'g';
-    document.getElementById('fat-planned').textContent = ' / ' + Math.round(actualFat) + 'g';
+    document.getElementById('fat-planned').textContent = ' / ' + Math.round(plannedFat) + 'g';
     document.getElementById('fat-goal').textContent = `Goal: ${userProfile.macros.fat}g`;
     
     displayTodayMeals();
@@ -3450,63 +3605,74 @@ function displayTodayMeals() {
     const selectedFoods = foodLog.filter(food => food.date === selectedDate);
     const selectedMeals = assignedMeals.filter(meal => meal.date === selectedDate);
     const container = document.getElementById('today-meals');
+    if (!container) return;
 
     if (selectedFoods.length === 0 && selectedMeals.length === 0) {
         container.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">No foods or meals for this date yet.</p>';
         return;
     }
 
-    const foodsHtml = selectedFoods.map(food => `
-        <div class="meal-card completed">
-            <div class="meal-header">
-                <div>
-                    <h4>${food.name}</h4>
-                    <div class="meal-time">Logged at ${food.timestamp || ''}</div>
-                </div>
-                <div style="display:flex; gap:8px; align-items:center;">
-                    <span style="color:#666; font-size:14px;">${food.servings || 1} serving${(food.servings || 1) !== 1 ? 's' : ''}</span>
-                </div>
-            </div>
-            <p style="margin-top: 8px; color: #666;">${Math.round(food.calories)} cal | C: ${Math.round((food.carbs || 0) * 10) / 10}g | P: ${Math.round((food.protein || 0) * 10) / 10}g | F: ${Math.round((food.fat || 0) * 10) / 10}g</p>
-        </div>
-    `).join('');
-
-    const mealsHtml = selectedMeals.map(meal => {
-        const servings = meal.servings || 1;
-        const displayCals = Math.round(meal.calories * servings);
-        const displayCarbs = Math.round(meal.carbs * servings * 10) / 10;
-        const displayProtein = Math.round(meal.protein * servings * 10) / 10;
-        const displayFat = Math.round(meal.fat * servings * 10) / 10;
-        
-        return `
-        <div class="meal-card ${meal.completed ? 'completed' : ''}">
-            <div class="meal-header">
-                <div>
-                    <h4>${normalizeMealName(meal.name)}</h4>
-                    <div class="meal-time">${meal.time || 'No time set'}</div>
-                </div>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    ${!meal.completed ? `
-                        <div style="display: flex; align-items: center; gap: 6px;">
-                            <input type="number" class="serving-input" value="${servings}" step="0.1" min="0.1" 
-                                onchange="updateMealServings(${meal.id}, this.value)">
-                            <span class="serving-label">serving${servings !== 1 ? 's' : ''}</span>
+    const foodsHtml = selectedFoods.length ? `
+        <div style="margin-bottom: 14px;">
+            <h4 style="color:#334155; margin-bottom:10px;">Logged Foods</h4>
+            ${selectedFoods.map(food => `
+                <div class="meal-card completed" style="margin-bottom:10px;">
+                    <div class="meal-header">
+                        <div>
+                            <h4>${food.name}</h4>
+                            <div class="meal-time">Logged at ${food.timestamp || ''}</div>
                         </div>
-                    ` : `
-                        <span style="color: #666; font-size: 14px;">${servings} serving${servings !== 1 ? 's' : ''}</span>
-                    `}
-                    ${!meal.completed ? `<button class="btn btn-sm btn-secondary" onclick="editMeal(${meal.id})">Edit</button>` : ''}
-                    ${!meal.completed ? `<button class="btn btn-sm btn-danger" onclick="deleteMeal(${meal.id})">Delete</button>` : ''}
-                    <button class="btn btn-sm" onclick="${meal.completed ? 'void(0)' : 'confirmMeal(' + meal.id + ')'}" ${meal.completed ? 'disabled' : ''}>
-                        ${meal.completed ? '✓ Eaten at ' + meal.completedAt : 'Mark Eaten'}
-                    </button>
+                        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                            <span style="color:#666; font-size:14px;">${food.servings || 1} serving${(food.servings || 1) !== 1 ? 's' : ''}</span>
+                            <button class="btn btn-sm btn-secondary" onclick="editFood(${food.id})">Edit</button>
+                            <button class="btn btn-sm" onclick="copyFoodLogEntry(${food.id})">Copy</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteFood(${food.id})">Delete</button>
+                        </div>
+                    </div>
+                    <p style="margin-top: 8px; color: #666;">${Math.round(food.calories)} cal | C: ${Math.round((food.carbs || 0) * 10) / 10}g | P: ${Math.round((food.protein || 0) * 10) / 10}g | F: ${Math.round((food.fat || 0) * 10) / 10}g</p>
                 </div>
-            </div>
-            <p>${meal.description}</p>
-            <p style="margin-top: 8px; color: #666;">${displayCals} cal | C: ${displayCarbs}g | P: ${displayProtein}g | F: ${displayFat}g</p>
+            `).join('')}
         </div>
-    `;
-    }).join('');
+    ` : '';
+
+    const mealsHtml = selectedMeals.length ? `
+        <div>
+            <h4 style="color:#334155; margin-bottom:10px;">Meal Plan</h4>
+            ${selectedMeals.map(meal => {
+                const servings = meal.servings || 1;
+                const displayCals = Math.round((meal.calories || 0) * servings);
+                const displayCarbs = Math.round((meal.carbs || 0) * servings * 10) / 10;
+                const displayProtein = Math.round((meal.protein || 0) * servings * 10) / 10;
+                const displayFat = Math.round((meal.fat || 0) * servings * 10) / 10;
+
+                return `
+                    <div class="meal-card ${meal.completed ? 'completed' : ''}" style="margin-bottom:10px;">
+                        <div class="meal-header">
+                            <div>
+                                <h4>${normalizeMealName(meal.name)}</h4>
+                                <div class="meal-time">${meal.time || 'No time set'} ${meal.completed ? '• eaten' : '• planned'}</div>
+                            </div>
+                            <div style="display: flex; gap: 8px; align-items: center; flex-wrap:wrap;">
+                                ${!meal.completed ? `
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <input type="number" class="serving-input" value="${servings}" step="0.1" min="0.1" onchange="updateMealServings(${meal.id}, this.value)">
+                                        <span class="serving-label">serving${servings !== 1 ? 's' : ''}</span>
+                                    </div>
+                                ` : `<span style="color: #666; font-size: 14px;">${servings} serving${servings !== 1 ? 's' : ''}</span>`}
+                                ${!meal.completed ? `<button class="btn btn-sm btn-secondary" onclick="editMeal(${meal.id})">Edit</button>` : ''}
+                                ${!meal.completed ? `<button class="btn btn-sm btn-danger" onclick="deleteMeal(${meal.id})">Delete</button>` : ''}
+                                <button class="btn btn-sm" onclick="${meal.completed ? 'void(0)' : 'confirmMeal(' + meal.id + ')'}" ${meal.completed ? 'disabled' : ''}>${meal.completed ? '✓ Eaten at ' + meal.completedAt : 'Mark Eaten'}</button>
+                            </div>
+                        </div>
+                        <p>${meal.description || ''}</p>
+                        <p style="margin-top: 8px; color: #666;">${displayCals} cal | C: ${displayCarbs}g | P: ${displayProtein}g | F: ${displayFat}g</p>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    ` : '';
+
+    container.innerHTML = foodsHtml + mealsHtml;
 }
 
 function updateMealServings(mealId, servings) {
@@ -3804,6 +3970,7 @@ function quickAssignAll() {
         cleanupAssignedMeals();
         generatedMeals = [];
         saveGeneratedMeals();
+        saveToLocalStorage();
         saveMeals();
         updateGeneratedMealsDisplay();
         updateWeekView();
@@ -3816,6 +3983,7 @@ function clearGeneratedMeals() {
     if (confirm('Remove all generated meals?')) {
         generatedMeals = [];
         saveGeneratedMeals();
+        saveToLocalStorage();
         updateGeneratedMealsDisplay();
     }
 }
@@ -4585,6 +4753,8 @@ Important response rules:
 - If the user asks for a multi-meal day plan, return a daily_plan JSON block.
 - Only return plain text without JSON for non-food informational questions.
 - Keep ingredient lists simple.
+- Every food in a meal plan MUST include a measurable quantity or serving amount, such as "6 oz chicken breast", "1 cup cottage cheese", "1 medium banana", "2 eggs", "1/2 cup oats".
+- Do not leave any ingredient without a quantity.
 - Make macros realistic and rounded.`
         },
         {
@@ -4811,6 +4981,6 @@ if (typeof window !== 'undefined') {
     };
 }
         
-    </script>
+</script>
 </body>
 </html>
