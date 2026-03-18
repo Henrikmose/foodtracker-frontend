@@ -2263,32 +2263,38 @@ function calculateSuggestedCalories() {
     const gender = document.getElementById('user-gender')?.value;
     const activity = document.getElementById('activity-level')?.value;
 
-    let weight = 0;
-    let heightCm = 0;
+    let weightKg = null;
+    let heightCm = null;
 
     if (currentUnit === 'imperial') {
-        const weightLbs = parseFloat(document.getElementById('current-weight')?.value);
-        const feet = parseFloat(document.getElementById('height-feet')?.value);
+        const weightLbsRaw = document.getElementById('current-weight')?.value;
+        const feetRaw = document.getElementById('height-feet')?.value;
         const inchesRaw = document.getElementById('height-inches')?.value;
+
+        const weightLbs = weightLbsRaw === '' ? NaN : parseFloat(weightLbsRaw);
+        const feet = feetRaw === '' ? NaN : parseFloat(feetRaw);
         const inches = inchesRaw === '' ? NaN : parseFloat(inchesRaw);
 
-        if (!weightLbs || !feet || Number.isNaN(inches)) {
+        if (Number.isNaN(weightLbs) || Number.isNaN(feet) || Number.isNaN(inches)) {
             alert('Please fill in your weight and height!');
             return;
         }
 
-        weight = weightLbs * 0.453592;
+        weightKg = weightLbs * 0.45359237;
         heightCm = ((feet * 12) + inches) * 2.54;
     } else {
-        const weightKg = parseFloat(document.getElementById('current-weight-metric')?.value);
-        const heightMetric = parseFloat(document.getElementById('height-metric')?.value);
+        const weightMetricRaw = document.getElementById('current-weight-metric')?.value;
+        const heightMetricRaw = document.getElementById('height-metric')?.value;
 
-        if (!weightKg || !heightMetric) {
+        const weightMetric = weightMetricRaw === '' ? NaN : parseFloat(weightMetricRaw);
+        const heightMetric = heightMetricRaw === '' ? NaN : parseFloat(heightMetricRaw);
+
+        if (Number.isNaN(weightMetric) || Number.isNaN(heightMetric)) {
             alert('Please fill in your weight and height!');
             return;
         }
 
-        weight = weightKg;
+        weightKg = weightMetric;
         heightCm = heightMetric;
     }
 
@@ -2299,27 +2305,28 @@ function calculateSuggestedCalories() {
 
     let bmr = 0;
     if (gender === 'male') {
-        bmr = (10 * weight) + (6.25 * heightCm) - (5 * age) + 5;
+        bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) + 5;
     } else {
-        bmr = (10 * weight) + (6.25 * heightCm) - (5 * age) - 161;
+        bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * age) - 161;
     }
 
-    const activityMultipliers = {
+    const activityMap = {
         sedentary: 1.2,
         lightly_active: 1.375,
         moderately_active: 1.55,
         very_active: 1.725,
         extremely_active: 1.9
     };
+    const multiplier = activityMap[activity] || 1.55;
+    const tdee = Math.round(bmr * multiplier);
 
-    const tdee = Math.round(bmr * (activityMultipliers[activity] || 1.55));
     userProfile.bmr = Math.round(bmr);
     userProfile.tdee = tdee;
 
-    const goalType = document.getElementById('goal-type')?.value || 'maintain';
+    const goalRaw = (document.getElementById('goal-type')?.value || '').toLowerCase();
     let targetCalories = tdee;
-    if (goalType === 'Weight Loss (Cut)' || goalType === 'cut' || goalType === 'weight_loss') targetCalories = Math.max(1200, tdee - 500);
-    if (goalType === 'Weight Gain (Bulk)' || goalType === 'bulk' || goalType === 'weight_gain') targetCalories = tdee + 300;
+    if (goalRaw.includes('loss') || goalRaw.includes('cut')) targetCalories = Math.max(1200, tdee - 500);
+    if (goalRaw.includes('gain') || goalRaw.includes('bulk')) targetCalories = tdee + 300;
 
     const calInput = document.getElementById('daily-calories');
     if (calInput) calInput.value = Math.round(targetCalories);
@@ -2354,7 +2361,6 @@ function calculateSuggestedMacros() {
         return;
     }
 
-    // Default macro logic: higher protein, balanced carbs, moderate fat
     const proteinG = Math.round((calories * 0.28) / 4);
     const fatG = Math.round((calories * 0.22) / 9);
     const carbG = Math.round((calories - (proteinG * 4) - (fatG * 9)) / 4);
@@ -2397,13 +2403,16 @@ async function saveProfile() {
     userProfile.gender = document.getElementById('user-gender')?.value || '';
     userProfile.age = parseFloat(document.getElementById('user-age')?.value) || null;
     userProfile.activityLevel = document.getElementById('activity-level')?.value || '';
+    userProfile.goalType = document.getElementById('goal-type')?.value || 'maintain';
 
     if (currentUnit === 'imperial') {
         userProfile.currentWeight = parseFloat(document.getElementById('current-weight')?.value) || null;
         userProfile.targetWeight = parseFloat(document.getElementById('target-weight')?.value) || null;
         userProfile.heightFeet = parseFloat(document.getElementById('height-feet')?.value) || null;
         userProfile.heightInches = document.getElementById('height-inches')?.value === '' ? null : parseFloat(document.getElementById('height-inches')?.value);
-        userProfile.heightCm = userProfile.heightFeet && userProfile.heightInches !== null ? ((userProfile.heightFeet * 12) + userProfile.heightInches) * 2.54 : null;
+        userProfile.heightCm = (userProfile.heightFeet !== null && userProfile.heightInches !== null && !Number.isNaN(userProfile.heightFeet) && !Number.isNaN(userProfile.heightInches))
+            ? ((userProfile.heightFeet * 12) + userProfile.heightInches) * 2.54
+            : null;
     } else {
         userProfile.currentWeightMetric = parseFloat(document.getElementById('current-weight-metric')?.value) || null;
         userProfile.targetWeightMetric = parseFloat(document.getElementById('target-weight-metric')?.value) || null;
@@ -2411,7 +2420,6 @@ async function saveProfile() {
         userProfile.heightCm = userProfile.heightMetric || null;
     }
 
-    userProfile.goalType = document.getElementById('goal-type')?.value || 'maintain';
     userProfile.dailyCalories = parseFloat(document.getElementById('daily-calories')?.value) || 2000;
     userProfile.carbs = parseFloat(document.getElementById('carbs-grams')?.value) || 250;
     userProfile.protein = parseFloat(document.getElementById('protein-grams')?.value) || 150;
@@ -2426,6 +2434,10 @@ async function saveProfile() {
     updateDashboard();
     if (typeof displayTodayMeals === 'function') displayTodayMeals();
     if (typeof updateFoodLogDisplay === 'function') updateFoodLogDisplay();
+
+    const sync = document.getElementById('sync-status');
+    if (sync) sync.textContent = '✓ Synced';
+
     alert('Profile saved and dashboard updated');
 }
 
@@ -3168,6 +3180,7 @@ function updateDashboard() {
     const calPct = Math.min(100, Math.round((actualCalories / targetCalories) * 100 || 0));
 
     const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
     setText('daily-calories-display', `${Math.round(actualCalories)} / ${Math.round(targetCalories)} cal`);
     setText('calories-display', `${Math.round(actualCalories)} / ${Math.round(targetCalories)} cal`);
     setText('calories-progress-text', `${calPct}%`);
@@ -3186,8 +3199,8 @@ function updateDashboard() {
     setText('fat-planned', ` / ${Math.round(plannedFat)}g`);
     setText('fat-goal', `Goal: ${Math.round(targetFat)}g`);
 
-    updateUpcomingMacros();
-    displayTodayMeals();
+    if (typeof updateUpcomingMacros === 'function') updateUpcomingMacros();
+    if (typeof displayTodayMeals === 'function') displayTodayMeals();
 }
 
 function displayUpcomingMacros() {
