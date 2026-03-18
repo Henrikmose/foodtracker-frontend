@@ -38,7 +38,7 @@
 
         .header {
             text-align: center;
-            color: white;
+            color: #1E3A8A;
             margin-bottom: 40px;
         }
 
@@ -79,7 +79,7 @@
 
         .nav-btn.active {
             background: #4CAF50;
-            color: white;
+            color: #1E3A8A;
         }
 
         .content {
@@ -156,7 +156,7 @@
 
         .btn {
             background: #4CAF50;
-            color: white;
+            color: #1E3A8A;
             border: none;
             padding: 12px 30px;
             border-radius: 25px;
@@ -223,7 +223,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: #1E3A8A;
             font-weight: bold;
         }
 
@@ -283,7 +283,7 @@
 
         .delete-btn {
             background: #f44336;
-            color: white;
+            color: #1E3A8A;
             border: none;
             padding: 8px 15px;
             border-radius: 5px;
@@ -314,7 +314,7 @@
 
         .chat-message.user {
             background: #4CAF50;
-            color: white;
+            color: #1E3A8A;
             margin-left: auto;
         }
 
@@ -351,7 +351,7 @@
 
         .toggle-btn.active {
             background: #4CAF50;
-            color: white;
+            color: #1E3A8A;
         }
 
         .meal-card {
@@ -394,7 +394,7 @@
         .meal-date-badge {
             display: inline-block;
             background: #4CAF50;
-            color: white;
+            color: #1E3A8A;
             padding: 4px 12px;
             border-radius: 12px;
             font-size: 12px;
@@ -815,7 +815,7 @@
         }
 
         .scanner-result {
-            color: white;
+            color: #1E3A8A;
             text-align: center;
             margin-top: 15px;
             font-size: 18px;
@@ -1200,7 +1200,7 @@
                         </select>
                     </div>
 
-                    <button class="btn btn-secondary" onclick="calculateCalories()" style="width: 100%; margin-top: 10px;">📊 Calculate My Calories</button>
+                    <button class="btn btn-secondary" onclick="calculateCalories()" style="width: 100%; margin-top: 10px;">📊 Calculate My Targets</button>
                 </div>
 
                 <div class="card">
@@ -1216,8 +1216,8 @@
                     </div>
 
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 15px;">
-                        <button class="btn btn-secondary" onclick="calculateSuggestedCalories()">🎯 Suggest Calories</button>
-                        <button class="btn btn-secondary" onclick="calculateSuggestedMacros()">📊 Suggest Macros</button>
+                        <button class="btn btn-secondary" onclick="calculateSuggestedCalories()">🎯 Calculate My Targets</button>
+                        <button class="btn btn-secondary" onclick="calculateSuggestedMacros()">📊 Calculate My Targets</button>
                     </div>
 
                     <div class="input-group">
@@ -2367,7 +2367,7 @@ function calculateSuggestedCalories() {
         <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 12px;">
             <div style="font-size: 13px; color: #666; margin-bottom: 15px; line-height: 1.8;">${rationale}</div>
             
-            <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #4CAF50, #8BC34A); border-radius: 10px; color: white; margin-top: 15px;">
+            <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #4CAF50, #8BC34A); border-radius: 10px; color: #1E3A8A; margin-top: 15px;">
                 <div style="font-size: 14px; font-weight: 600; opacity: 0.9; margin-bottom: 8px;">RECOMMENDED DAILY CALORIES</div>
                 <div style="font-size: 42px; font-weight: bold; margin: 10px 0;">${suggestedCalories}</div>
                 <div style="font-size: 14px; opacity: 0.9;">calories per day</div>
@@ -2432,7 +2432,7 @@ function applySuggestedCalories() {
     }, 1000);
     
     closeCalorieSuggestionsModal();
-    alert(`Calorie goal set to ${suggestedCalories}! Now click "Suggest Macros" to get your macro split, then "Save Profile".`);
+    alert(`Calorie goal set to ${suggestedCalories}! Now click "Calculate My Targets" to get your macro split, then "Save Profile".`);
 }
 
 function calculateSuggestedMacros() {
@@ -2642,6 +2642,8 @@ function applySuggestedMacros() {
 }
 
 async function saveProfile() {
+    updateDashboard();
+    alert('Profile saved and dashboard updated');
     alert('Profile saved');
     // Personal info
     userProfile.name = document.getElementById('user-name').value;
@@ -3634,13 +3636,12 @@ function displayTodayMeals() {
                         <div class="meal-header">
                             <div>
                                 <h4>${normalizeMealName(meal.name)}</h4>
-                                <div class="meal-time">${meal.time || 'No time set'} • ✓ eaten</div>
+                                <div class="meal-time">${meal.time || 'No time set'} • ✓ eaten at </div>
                             </div>
                             <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                                 <span style="color:#666; font-size:14px;">${servings} serving${servings !== 1 ? 's' : ''}</span>
                                 <button class="btn btn-sm btn-secondary" onclick="editMeal(${meal.id})">Edit</button>
                                 <button class="btn btn-sm" onclick="copyMealEntry(${meal.id})">Copy</button>
-                                <button class="btn btn-sm btn-secondary" onclick="undoMealCompletion(${meal.id})">Delete</button>
                                 <button class="btn btn-sm btn-danger" onclick="deleteCompletedMeal(${meal.id})">Delete</button>
                                 
                             </div>
