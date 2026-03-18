@@ -2642,6 +2642,7 @@ function applySuggestedMacros() {
 }
 
 async function saveProfile() {
+    alert('Profile saved');
     // Personal info
     userProfile.name = document.getElementById('user-name').value;
     userProfile.gender = document.getElementById('user-gender').value;
@@ -3633,15 +3634,15 @@ function displayTodayMeals() {
                         <div class="meal-header">
                             <div>
                                 <h4>${normalizeMealName(meal.name)}</h4>
-                                <div class="meal-time">${meal.time || 'No time set'} • eaten</div>
+                                <div class="meal-time">${meal.time || 'No time set'} • ✓ eaten</div>
                             </div>
                             <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                                 <span style="color:#666; font-size:14px;">${servings} serving${servings !== 1 ? 's' : ''}</span>
                                 <button class="btn btn-sm btn-secondary" onclick="editMeal(${meal.id})">Edit</button>
                                 <button class="btn btn-sm" onclick="copyMealEntry(${meal.id})">Copy</button>
-                                <button class="btn btn-sm btn-secondary" onclick="undoMealCompletion(${meal.id})">Undo Eaten</button>
+                                <button class="btn btn-sm btn-secondary" onclick="undoMealCompletion(${meal.id})">Delete</button>
                                 <button class="btn btn-sm btn-danger" onclick="deleteCompletedMeal(${meal.id})">Delete</button>
-                                <button class="btn btn-sm" disabled>✓ Eaten at ${meal.completedAt || ''}</button>
+                                
                             </div>
                         </div>
                         <p>${meal.description || ''}</p>
@@ -4077,9 +4078,7 @@ function updateWeekView() {
                         <div style="display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;">
                             ${!meal.completed ? `<button class="btn btn-sm btn-secondary" onclick="editMeal(${meal.id})" style="font-size: 12px; padding: 6px 12px;">Edit</button>` : ''}
                             ${!meal.completed ? `<button class="btn btn-sm btn-danger" onclick="deleteMeal(${meal.id})" style="font-size: 12px; padding: 6px 12px;">Delete</button>` : ''}
-                            <button class="btn btn-sm" onclick="${meal.completed ? 'void(0)' : 'confirmMeal(' + meal.id + ')'}" ${meal.completed ? 'disabled' : ''} style="font-size: 12px; padding: 6px 12px;">
-                                ${meal.completed ? '✓ Eaten' : 'Mark Eaten'}
-                            </button>
+                            
                         </div>
                     </div>
                 `;
