@@ -2237,59 +2237,6 @@ let suggestedMacros = null; // Store suggested macros for applying later
 let suggestedCalories = null; // Store suggested calories for applying later
 
 
-
-let copyPayload = null;
-
-function openCopyModal(payload){
-    copyPayload = payload;
-    document.getElementById('copyModal').style.display = 'block';
-}
-
-function closeCopyModal(){
-    document.getElementById('copyModal').style.display = 'none';
-    copyPayload = null;
-}
-
-function copyToDate(type){
-    let targetDate;
-    const today = new Date();
-
-    if(type === 'tomorrow'){
-        today.setDate(today.getDate()+1);
-        targetDate = today.toISOString().split('T')[0];
-    } else if(type === 'dayafter'){
-        today.setDate(today.getDate()+2);
-        targetDate = today.toISOString().split('T')[0];
-    } else {
-        targetDate = document.getElementById('customDate').value;
-    }
-
-    if(!targetDate || !copyPayload) return;
-
-    if(copyPayload.type === 'meal'){
-        assignedMeals.push({
-            ...copyPayload.data,
-            id: Date.now(),
-            date: targetDate,
-            completed:false
-        });
-        saveMeals();
-    }
-
-    if(copyPayload.type === 'food'){
-        foodLog.push({
-            ...copyPayload.data,
-            id: Date.now(),
-            date: targetDate
-        });
-        saveFoodLog();
-    }
-
-    updateDashboard();
-    updateFoodLogDisplay();
-    closeCopyModal();
-}
-
 function applyGoalEngine() {
     const goalType = document.getElementById('goal-engine-type')?.value || 'maintain';
     const change = parseFloat(document.getElementById('goal-engine-change')?.value) || 0;
@@ -3207,76 +3154,125 @@ function hardResetPlannerData() {
 }
 
 
-function chooseCopyDate(defaultDate = null) {
-    const input = prompt('Copy to which date? Use YYYY-MM-DD, or type tomorrow / day after', defaultDate || '');
-    if (!input) return null;
-    const raw = input.trim().toLowerCase();
 
-    if (raw === 'tomorrow') {
-        const d = new Date();
+function openCopyModal(payload) {
+    window.copyPayload = payload;
+    const modal = document.getElementById('copy-modal');
+    if (modal) {
+        document.getElementById('copy-custom-date').value = '';
+        modal.classList.add('show');
+    }
+}
+
+function closeCopyModal() {
+    window.copyPayload = null;
+    const modal = document.getElementById('copy-modal');
+    if (modal) modal.classList.remove('show');
+}
+
+function resolveCopyDate(choice) {
+    const d = new Date();
+    if (choice === 'tomorrow') {
         d.setDate(d.getDate() + 1);
         return d.toISOString().split('T')[0];
     }
-
-    if (raw === 'day after' || raw === 'day after tomorrow') {
-        const d = new Date();
+    if (choice === 'dayafter') {
         d.setDate(d.getDate() + 2);
         return d.toISOString().split('T')[0];
     }
-
-    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
-
-    alert('Please enter a valid date in YYYY-MM-DD format.');
+    if (choice === 'custom') {
+        const val = document.getElementById('copy-custom-date')?.value;
+        return val || null;
+    }
     return null;
 }
 
-
-function copySelectedDateActivity() {
-    const sourceDate = currentViewDate || new Date().toISOString().split('T')[0];
-    const targetDate = chooseCopyDate();
-    if (!targetDate) return;
-    if (targetDate === sourceDate) {
-        alert('Choose a different target date.');
+function confirmCopyAction(choice) {
+    const targetDate = resolveCopyDate(choice);
+    if (!targetDate || !window.copyPayload) {
+        if (choice === 'custom') alert('Please choose a date first');
         return;
     }
 
-    const foodsToCopy = foodLog.filter(f => f.date === sourceDate);
-    const mealsToCopy = assignedMeals.filter(m => m.date === sourceDate);
+    const payload = window.copyPayload;
 
-    if (foodsToCopy.length === 0 && mealsToCopy.length === 0) {
-        alert('There is nothing on this day to copy.');
-        return;
-    }
-
-    foodsToCopy.forEach(food => {
-        foodLog.push({
+    if (payload.type === 'food') {
+        const food = foodLog.find(f => f.id === payload.id);
+        if (!food) return;
+        const copied = {
             ...food,
-            id: Date.now() + Math.floor(Math.random() * 1000000) + Math.floor(Math.random() * 1000),
+            id: Date.now() + Math.floor(Math.random() * 100000),
             date: targetDate,
             timestamp: new Date().toLocaleTimeString()
-        });
-    });
+        };
+        foodLog.push(copied);
+        saveFoodLog();
+    }
 
-    mealsToCopy.forEach(meal => {
-        assignedMeals.push({
+    if (payload.type === 'meal') {
+        const meal = assignedMeals.find(m => m.id === payload.id);
+        if (!meal) return;
+        const copied = {
             ...meal,
-            id: Date.now() + Math.floor(Math.random() * 1000000) + Math.floor(Math.random() * 1000),
+            id: Date.now() + Math.floor(Math.random() * 100000),
             date: targetDate,
             completed: false,
             completedAt: null
-        });
-    });
+        };
+        assignedMeals.push(copied);
+        cleanupAssignedMeals();
+        saveMeals();
+    }
 
-    cleanupAssignedMeals();
-    saveFoodLog();
-    saveMeals();
+    if (payload.type === 'day') {
+        const sourceDate = currentViewDate;
+        const foodsToCopy = foodLog.filter(f => f.date === sourceDate);
+        const mealsToCopy = assignedMeals.filter(m => m.date === sourceDate);
+
+        foodsToCopy.forEach(food => {
+            foodLog.push({
+                ...food,
+                id: Date.now() + Math.floor(Math.random() * 1000000) + Math.floor(Math.random() * 1000),
+                date: targetDate,
+                timestamp: new Date().toLocaleTimeString()
+            });
+        });
+
+        mealsToCopy.forEach(meal => {
+            assignedMeals.push({
+                ...meal,
+                id: Date.now() + Math.floor(Math.random() * 1000000) + Math.floor(Math.random() * 1000),
+                date: targetDate,
+                completed: false,
+                completedAt: null
+            });
+        });
+
+        cleanupAssignedMeals();
+        saveFoodLog();
+        saveMeals();
+    }
+
     updateFoodLogDisplay();
     updateDashboard();
     updateWeekView();
-    alert(`Copied this day to ${targetDate}`);
+    closeCopyModal();
 }
 
-function openCopyModal({type:'food', data: foodLog.find(f=>f.id==foodId) {
+function copyFoodLogEntry(foodId) {
+    openCopyModal({ type: 'food', id: foodId });
+}
+
+function copyMealEntry(mealId) {
+    openCopyModal({ type: 'meal', id: mealId });
+}
+
+function copySelectedDateActivity() {
+    openCopyModal({ type: 'day' });
+}
+
+function addFood() {
+
     const food = foodLog.find(f => f.id === foodId);
     if (!food) return;
 
@@ -3467,7 +3463,7 @@ function updateFoodLogDisplay() {
                     </div>
                     <div style="display: flex; gap: 8px; flex-wrap:wrap;">
                         <button class="btn btn-sm btn-secondary" onclick="editFood(${food.id})">Edit</button>
-                        <button class="btn btn-sm" onclick="openCopyModal({type:'food', data: foodLog.find(f=>f.id==${food.id})">Copy</button>
+                        <button class="btn btn-sm" onclick="copyFoodLogEntry(${food.id})">Copy</button>
                         <button class="delete-btn" onclick="deleteFood(${food.id})">Delete</button>
                     </div>
                 </div>
@@ -3530,7 +3526,7 @@ function updateFoodLogDisplay() {
                 </div>
                 <div style="display: flex; gap: 8px; flex-wrap:wrap;">
                     <button class="btn btn-sm btn-secondary" onclick="editFood(${food.id})">Edit</button>
-                    <button class="btn btn-sm" onclick="openCopyModal({type:'food', data: foodLog.find(f=>f.id==${food.id})">Copy</button>
+                    <button class="btn btn-sm" onclick="copyFoodLogEntry(${food.id})">Copy</button>
                     <button class="delete-btn" onclick="deleteFood(${food.id})">Delete</button>
                 </div>
             </div>
@@ -3678,7 +3674,7 @@ function displayTodayMeals() {
                         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                             <span style="color:#666; font-size:14px;">${food.servings || 1} serving${(food.servings || 1) !== 1 ? 's' : ''}</span>
                             <button class="btn btn-sm btn-secondary" onclick="editFood(${food.id})">Edit</button>
-                            <button class="btn btn-sm" onclick="openCopyModal({type:'food', data: foodLog.find(f=>f.id==${food.id})">Copy</button>
+                            <button class="btn btn-sm" onclick="copyFoodLogEntry(${food.id})">Copy</button>
                             <button class="btn btn-sm btn-danger" onclick="deleteFood(${food.id})">Delete</button>
                         </div>
                     </div>
@@ -3713,8 +3709,9 @@ function displayTodayMeals() {
                                     </div>
                                 ` : `<span style="color: #666; font-size: 14px;">${servings} serving${servings !== 1 ? 's' : ''}</span>`}
                                 ${!meal.completed ? `<button class="btn btn-sm btn-secondary" onclick="editMeal(${meal.id})">Edit</button>` : ''}
+                                ${!meal.completed ? `<button class="btn btn-sm" onclick="copyMealEntry(${meal.id})">Copy</button>` : ''}
                                 ${!meal.completed ? `<button class="btn btn-sm btn-danger" onclick="deleteMeal(${meal.id})">Delete</button>` : ''}
-                                <button class="btn btn-sm" onclick="${meal.completed ? 'void(0)' : 'confirmMeal(' + meal.id + ')'}" ${meal.completed ? 'disabled' : ''}>${meal.completed ? '✓ Eaten at ' + meal.completedAt : 'Mark Eaten</button><button class='btn btn-sm' onclick="openCopyModal({type:'meal', data: assignedMeals.find(m=>m.id=='+meal.id+')})">Copy'}</button>
+                                <button class="btn btn-sm" onclick="${meal.completed ? 'void(0)' : 'confirmMeal(' + meal.id + ')'}" ${meal.completed ? 'disabled' : ''}>${meal.completed ? '✓ Eaten at ' + meal.completedAt : 'Mark Eaten'}</button>
                             </div>
                         </div>
                         <p>${meal.description || ''}</p>
@@ -4151,7 +4148,7 @@ function updateWeekView() {
                             ${!meal.completed ? `<button class="btn btn-sm btn-secondary" onclick="editMeal(${meal.id})" style="font-size: 12px; padding: 6px 12px;">Edit</button>` : ''}
                             ${!meal.completed ? `<button class="btn btn-sm btn-danger" onclick="deleteMeal(${meal.id})" style="font-size: 12px; padding: 6px 12px;">Delete</button>` : ''}
                             <button class="btn btn-sm" onclick="${meal.completed ? 'void(0)' : 'confirmMeal(' + meal.id + ')'}" ${meal.completed ? 'disabled' : ''} style="font-size: 12px; padding: 6px 12px;">
-                                ${meal.completed ? '✓ Eaten' : 'Mark Eaten</button><button class='btn btn-sm' onclick="openCopyModal({type:'meal', data: assignedMeals.find(m=>m.id=='+meal.id+')})">Copy'}
+                                ${meal.completed ? '✓ Eaten' : 'Mark Eaten'}
                             </button>
                         </div>
                     </div>
@@ -5036,16 +5033,23 @@ if (typeof window !== 'undefined') {
         
     </script>
 
-<div id="copyModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:999;">
-  <div style="background:white; padding:20px; border-radius:10px; max-width:300px; margin:100px auto; text-align:center;">
-    <h3 style="color:#1E40AF;">Copy to</h3>
-    <button class="btn" onclick="copyToDate('tomorrow')">Tomorrow</button><br><br>
-    <button class="btn" onclick="copyToDate('dayafter')">Day After</button><br><br>
-    <input type="date" id="customDate"><br><br>
-    <button class="btn btn-secondary" onclick="copyToDate('custom')">Pick Date</button><br><br>
-    <button class="btn btn-danger" onclick="closeCopyModal()">Cancel</button>
-  </div>
-</div>
+    <div id="copy-modal" class="modal" onclick="if(event.target.id==='copy-modal') closeCopyModal()">
+        <div class="modal-content" style="max-width: 360px;">
+            <div class="modal-header">
+                <h2 class="modal-title">Copy to</h2>
+                <button class="close-btn" onclick="closeCopyModal()">&times;</button>
+            </div>
+            <div style="display:grid; gap:10px;">
+                <button class="btn" onclick="confirmCopyAction('tomorrow')">Tomorrow</button>
+                <button class="btn btn-secondary" onclick="confirmCopyAction('dayafter')">Day After</button>
+                <div class="input-group" style="margin-top:8px;">
+                    <label>Pick Date</label>
+                    <input type="date" id="copy-custom-date">
+                </div>
+                <button class="btn btn-secondary" onclick="confirmCopyAction('custom')">Copy to Selected Date</button>
+            </div>
+        </div>
+    </div>
 
 </body>
 </html>
