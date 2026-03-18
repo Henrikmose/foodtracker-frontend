@@ -3408,97 +3408,29 @@ function loadFoodLog() {
 function updateFoodLogDisplay() {
     const selectedDate = currentViewDate;
     const foodsForDate = foodLog.filter(food => food.date === selectedDate);
-    const completedMealsForDate = assignedMeals.filter(meal => meal.date === selectedDate && meal.completed);
-    const plannedMealsForDate = assignedMeals.filter(meal => meal.date === selectedDate && !meal.completed);
-
     const listElement = document.getElementById('food-log-list');
-    const dashboardListElement = document.getElementById('today-food-list');
 
-    const foodsSection = foodsForDate.length ? `
-        <div style="margin-bottom: 14px;">
-            <h4 style="color:#475569; margin-bottom:10px;">Logged Foods</h4>
-            ${foodsForDate.map(food => `
-                <div class="food-log-item">
-                    <div>
-                        <h4>${food.name} <span style="color: #1E40AF; font-size: 14px;">(logged)</span></h4>
-                        <p>${Math.round(food.calories)} cal | C: ${Math.round(food.carbs * 10) / 10}g | P: ${Math.round(food.protein * 10) / 10}g | F: ${Math.round(food.fat * 10) / 10}g</p>
-                        <p style="font-size: 12px; color: #999;">${food.timestamp || ''}</p>
-                    </div>
-                    <div style="display: flex; gap: 8px; flex-wrap:wrap;">
-                        <button class="btn btn-sm btn-secondary" onclick="editFood(${food.id})">Edit</button>
-                        <button class="btn btn-sm" onclick="copyFoodLogEntry(${food.id})">Copy</button>
-                        <button class="delete-btn" onclick="deleteFood(${food.id})">Delete</button>
-                    </div>
-                </div>
-            `).join('')}
-        </div>
-    ` : '';
+    if (!listElement) return;
 
-    const completedMealsSection = completedMealsForDate.length ? `
-        <div style="margin-bottom: 14px;">
-            <h4 style="color:#475569; margin-bottom:10px;">Completed Meals</h4>
-            ${completedMealsForDate.map(meal => {
-                const servings = meal.completedServings || meal.servings || 1;
-                return `
-                    <div class="food-log-item">
-                        <div>
-                            <h4>${meal.name} <span style="color: #1E40AF; font-size: 14px;">(eaten from plan)</span></h4>
-                            <p>${Math.round((meal.calories || 0) * servings)} cal | C: ${Math.round((meal.carbs || 0) * servings * 10) / 10}g | P: ${Math.round((meal.protein || 0) * servings * 10) / 10}g | F: ${Math.round((meal.fat || 0) * servings * 10) / 10}g</p>
-                            <p style="font-size: 12px; color: #999;">${meal.completedAt ? 'Eaten at ' + meal.completedAt : ''}</p>
-                        </div>
-                    </div>
-                `;
-            }).join('')}
-        </div>
-    ` : '';
-
-    const plannedMealsSection = plannedMealsForDate.length ? `
-        <div>
-            <h4 style="color:#475569; margin-bottom:10px;">Planned Meals</h4>
-            ${plannedMealsForDate.map(meal => {
-                const servings = meal.servings || 1;
-                return `
-                    <div class="food-log-item">
-                        <div>
-                            <h4>${meal.name} <span style="color: #64748B; font-size: 14px;">(planned)</span></h4>
-                            <p>${Math.round((meal.calories || 0) * servings)} cal | C: ${Math.round((meal.carbs || 0) * servings * 10) / 10}g | P: ${Math.round((meal.protein || 0) * servings * 10) / 10}g | F: ${Math.round((meal.fat || 0) * servings * 10) / 10}g</p>
-                            <p style="font-size: 12px; color: #999;">${meal.time || 'No time set'}</p>
-                        </div>
-                    </div>
-                `;
-            }).join('')}
-        </div>
-    ` : '';
-
-    const dashboardHtml = foodsSection + completedMealsSection + plannedMealsSection;
-
-    if (!dashboardHtml) {
-        const emptyMsg = '<p style="color: #999; text-align: center; padding: 20px;">No foods or meals for this date yet.</p>';
-        if (listElement) listElement.innerHTML = emptyMsg;
-        if (dashboardListElement) dashboardListElement.innerHTML = emptyMsg;
+    if (!foodsForDate.length) {
+        listElement.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">No manually logged foods for this date.</p>';
         return;
     }
 
-    if (listElement) {
-        listElement.innerHTML = foodsForDate.length ? foodsForDate.map(food => `
-            <div class="food-log-item">
-                <div>
-                    <h4>${food.name} <span style="color: #1E40AF; font-size: 14px;">(logged)</span></h4>
-                    <p>${Math.round(food.calories)} cal | C: ${Math.round(food.carbs * 10) / 10}g | P: ${Math.round(food.protein * 10) / 10}g | F: ${Math.round(food.fat * 10) / 10}g</p>
-                    <p style="font-size: 12px; color: #999;">${food.timestamp || ''}</p>
-                </div>
-                <div style="display: flex; gap: 8px; flex-wrap:wrap;">
-                    <button class="btn btn-sm btn-secondary" onclick="editFood(${food.id})">Edit</button>
-                    <button class="btn btn-sm" onclick="copyFoodLogEntry(${food.id})">Copy</button>
-                    <button class="delete-btn" onclick="deleteFood(${food.id})">Delete</button>
-                </div>
+    listElement.innerHTML = foodsForDate.map(food => `
+        <div class="food-log-item">
+            <div>
+                <h4>${food.name} <span style="color: #1E40AF; font-size: 14px;">(logged)</span></h4>
+                <p>${Math.round(food.calories)} cal | C: ${Math.round(food.carbs * 10) / 10}g | P: ${Math.round(food.protein * 10) / 10}g | F: ${Math.round(food.fat * 10) / 10}g</p>
+                <p style="font-size: 12px; color: #999;">${food.timestamp || ''}</p>
             </div>
-        `).join('') : '<p style="color: #999; text-align: center; padding: 20px;">No manually logged foods for this date.</p>';
-    }
-
-    if (dashboardListElement) {
-        dashboardListElement.innerHTML = dashboardHtml;
-    }
+            <div style="display: flex; gap: 8px; flex-wrap:wrap;">
+                <button class="btn btn-sm btn-secondary" onclick="editFood(${food.id})">Edit</button>
+                <button class="btn btn-sm" onclick="copyFoodLogEntry(${food.id})">Copy</button>
+                <button class="delete-btn" onclick="deleteFood(${food.id})">Delete</button>
+            </div>
+        </div>
+    `).join('');
 }
 
 function updateDashboard() {
@@ -3625,7 +3557,7 @@ function displayTodayMeals() {
     }
 
     const foodsHtml = selectedFoods.length ? `
-        <div style="margin-bottom: 14px;">
+        <div style="margin-bottom: 18px;">
             <h4 style="color:#334155; margin-bottom:10px;">Logged Foods</h4>
             ${selectedFoods.map(food => `
                 <div class="meal-card completed" style="margin-bottom:10px;">
@@ -3647,10 +3579,13 @@ function displayTodayMeals() {
         </div>
     ` : '';
 
-    const mealsHtml = selectedMeals.length ? `
-        <div>
+    const plannedMeals = selectedMeals.filter(meal => !meal.completed);
+    const completedMeals = selectedMeals.filter(meal => meal.completed);
+
+    const plannedHtml = plannedMeals.length ? `
+        <div style="margin-bottom: 18px;">
             <h4 style="color:#334155; margin-bottom:10px;">Meal Plan</h4>
-            ${selectedMeals.map(meal => {
+            ${plannedMeals.map(meal => {
                 const servings = meal.servings || 1;
                 const displayCals = Math.round((meal.calories || 0) * servings);
                 const displayCarbs = Math.round((meal.carbs || 0) * servings * 10) / 10;
@@ -3658,21 +3593,21 @@ function displayTodayMeals() {
                 const displayFat = Math.round((meal.fat || 0) * servings * 10) / 10;
 
                 return `
-                    <div class="meal-card ${meal.completed ? 'completed' : ''}" style="margin-bottom:10px;">
+                    <div class="meal-card" style="margin-bottom:10px;">
                         <div class="meal-header">
                             <div>
                                 <h4>${normalizeMealName(meal.name)}</h4>
-                                <div class="meal-time">${meal.time || 'No time set'} ${meal.completed ? '• eaten' : '• planned'}</div>
+                                <div class="meal-time">${meal.time || 'No time set'} • planned</div>
                             </div>
-                            <div style="display: flex; gap: 8px; align-items: center; flex-wrap:wrap;">
-                                ${!meal.completed ? `<div style="display: flex; align-items: center; gap: 6px;">
+                            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                                <div style="display: flex; align-items: center; gap: 6px;">
                                     <input type="number" class="serving-input" value="${servings}" step="0.1" min="0.1" onchange="updateMealServings(${meal.id}, this.value)">
                                     <span class="serving-label">serving${servings !== 1 ? 's' : ''}</span>
-                                </div>` : `<span style="color: #666; font-size: 14px;">${servings} serving${servings !== 1 ? 's' : ''}</span>`}
-                                ${!meal.completed ? `<button class="btn btn-sm btn-secondary" onclick="editMeal(${meal.id})">Edit</button>` : ''}
-                                ${!meal.completed ? `<button class="btn btn-sm" onclick="copyMealEntry(${meal.id})">Copy</button>` : ''}
-                                ${!meal.completed ? `<button class="btn btn-sm btn-danger" onclick="deleteMeal(${meal.id})">Delete</button>` : ''}
-                                <button class="btn btn-sm" onclick="${meal.completed ? 'void(0)' : 'confirmMeal(' + meal.id + ')'}" ${meal.completed ? 'disabled' : ''}>${meal.completed ? '✓ Eaten at ' + meal.completedAt : 'Mark Eaten'}</button>
+                                </div>
+                                <button class="btn btn-sm btn-secondary" onclick="editMeal(${meal.id})">Edit</button>
+                                <button class="btn btn-sm" onclick="copyMealEntry(${meal.id})">Copy</button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteMeal(${meal.id})">Delete</button>
+                                <button class="btn btn-sm" onclick="confirmMeal(${meal.id})">Mark Eaten</button>
                             </div>
                         </div>
                         <p>${meal.description || ''}</p>
@@ -3683,7 +3618,41 @@ function displayTodayMeals() {
         </div>
     ` : '';
 
-    container.innerHTML = foodsHtml + mealsHtml;
+    const completedHtml = completedMeals.length ? `
+        <div>
+            <h4 style="color:#334155; margin-bottom:10px;">Completed Meals</h4>
+            ${completedMeals.map(meal => {
+                const servings = meal.completedServings || meal.servings || 1;
+                const displayCals = Math.round((meal.calories || 0) * servings);
+                const displayCarbs = Math.round((meal.carbs || 0) * servings * 10) / 10;
+                const displayProtein = Math.round((meal.protein || 0) * servings * 10) / 10;
+                const displayFat = Math.round((meal.fat || 0) * servings * 10) / 10;
+
+                return `
+                    <div class="meal-card completed" style="margin-bottom:10px;">
+                        <div class="meal-header">
+                            <div>
+                                <h4>${normalizeMealName(meal.name)}</h4>
+                                <div class="meal-time">${meal.time || 'No time set'} • eaten</div>
+                            </div>
+                            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                                <span style="color:#666; font-size:14px;">${servings} serving${servings !== 1 ? 's' : ''}</span>
+                                <button class="btn btn-sm btn-secondary" onclick="editMeal(${meal.id})">Edit</button>
+                                <button class="btn btn-sm" onclick="copyMealEntry(${meal.id})">Copy</button>
+                                <button class="btn btn-sm btn-secondary" onclick="undoMealCompletion(${meal.id})">Undo Eaten</button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteCompletedMeal(${meal.id})">Delete</button>
+                                <button class="btn btn-sm" disabled>✓ Eaten at ${meal.completedAt || ''}</button>
+                            </div>
+                        </div>
+                        <p>${meal.description || ''}</p>
+                        <p style="margin-top: 8px; color: #666;">${displayCals} cal | C: ${displayCarbs}g | P: ${displayProtein}g | F: ${displayFat}g</p>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    ` : '';
+
+    container.innerHTML = foodsHtml + plannedHtml + completedHtml;
 }
 
 function updateMealServings(mealId, servings) {
