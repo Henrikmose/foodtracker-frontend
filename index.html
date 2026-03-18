@@ -1032,7 +1032,7 @@
                             <div class="user-dropdown-item" onclick="logout()">Logout</div>
                         </div>
                     </div>
-                    <span id="sync-status" class="sync-status synced">✓ Synced</span>
+                    <span id="sync-status" class="sync-status synced">Saved Locally</span>
                 </div>
                 <button id="login-button" class="btn" onclick="showAuth()" style="display: inline-block;">Login / Sign Up</button>
             </div>
@@ -1238,26 +1238,6 @@
                     </div>
 
                     <small style="color:#666; display:block; margin-top:6px;">You can calculate these automatically, then override them manually if you want.</small>
-                </div>
-
-                <div class="card">
-                    <h3>Dietary Preferences</h3>
-                    <div class="input-group">
-                        <label>Diet Type</label>
-                        <input type="text" id="diet-type" placeholder="e.g., Keto, Vegan">
-                    </div>
-                    <div class="input-group">
-                        <label>Allergies</label>
-                        <input type="text" id="allergies" placeholder="e.g., Peanuts, Shellfish">
-                    </div>
-                    <div class="input-group">
-                        <label>Foods to Avoid</label>
-                        <input type="text" id="dislikes" placeholder="e.g., Seafood, Mushrooms">
-                    </div>
-                    <div class="input-group">
-                        <label>Health Goals</label>
-                        <textarea id="health-goals" rows="3" placeholder="e.g., Fat loss, better energy, lower cholesterol"></textarea>
-                    </div>
                 </div>
 
                 <button class="btn" onclick="saveProfile()">Save Profile</button>
@@ -1802,11 +1782,11 @@ function setSyncStatus(status) {
     statusEl.className = 'sync-status ' + status;
     
     if (status === 'synced') {
-        statusEl.textContent = '✓ Synced';
+        statusEl.textContent = 'Saved Locally';
     } else if (status === 'syncing') {
         statusEl.textContent = '⟳ Syncing...';
     } else if (status === 'offline') {
-        statusEl.textContent = '⚠ Offline';
+        statusEl.textContent = '⚠ Saved Locally';
     }
 }
 
@@ -2249,28 +2229,18 @@ function saveProfile() {
         protein: parseFloat(document.getElementById('protein-grams')?.value) || 150,
         fat: parseFloat(document.getElementById('fat-grams')?.value) || 67
     };
-
-    // Flat compatibility
     userProfile.carbs = userProfile.macros.carbs;
     userProfile.protein = userProfile.macros.protein;
     userProfile.fat = userProfile.macros.fat;
 
-    userProfile.preferences = {
-        dietType: document.getElementById('diet-type')?.value || '',
-        allergies: document.getElementById('allergies')?.value || '',
-        dislikes: document.getElementById('dislikes')?.value || '',
-        healthGoals: document.getElementById('health-goals')?.value || ''
-    };
-
     localStorage.setItem('userProfile', JSON.stringify(userProfile));
-    if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
 
-    updateDashboard();
+    if (typeof updateDashboard === 'function') updateDashboard();
     if (typeof displayTodayMeals === 'function') displayTodayMeals();
     if (typeof updateFoodLogDisplay === 'function') updateFoodLogDisplay();
 
     const sync = document.getElementById('sync-status');
-    if (sync) sync.textContent = '✓ Synced';
+    if (sync) sync.textContent = 'Saved Locally';
 
     alert('Profile saved and dashboard updated');
 }
@@ -2304,7 +2274,7 @@ function loadProfile() {
     document.getElementById('health-goals').value = userProfile.preferences?.healthGoals || '';
 
     const sync = document.getElementById('sync-status');
-    if (sync) sync.textContent = '✓ Synced';
+    if (sync) sync.textContent = 'Saved Locally';
 }
 
 // Food Search Functions
@@ -2991,7 +2961,7 @@ function updateDashboard() {
     const plannedProtein = plannedMeals.reduce((sum, m) => sum + ((Number(m.protein) || 0) * (Number(m.servings || 1))), 0);
     const plannedFat = plannedMeals.reduce((sum, m) => sum + ((Number(m.fat) || 0) * (Number(m.servings || 1))), 0);
 
-    const targetCalories = Number(userProfile.dailyCalories) || 2000;
+    const targetCalories = Number((userProfile && userProfile.dailyCalories) ? userProfile.dailyCalories : 2000);
     const targetCarbs = Number(userProfile.macros?.carbs ?? userProfile.carbs) || 250;
     const targetProtein = Number(userProfile.macros?.protein ?? userProfile.protein) || 150;
     const targetFat = Number(userProfile.macros?.fat ?? userProfile.fat) || 67;
