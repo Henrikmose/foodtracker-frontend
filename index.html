@@ -1303,8 +1303,8 @@
                     </div>
 
                     <div class="chat-input-container" style="margin-top: 15px;">
-                        <input type="text" id="health-chat-input" class="input-group input chat-input" placeholder="Ask about health, nutrition, supplements..." onkeypress="if(event.key==='Enter') sendHealthMessage()">
-                       <button class="btn" id="health-send-btn" onclick="sendHealthMessage()">Ask</button>
+                        <input type="text" id="health-chat-input" class="input-group input chat-input" placeholder="Ask about health, nutrition, supplements..." onkeypress="if(event.key==='Enter'){ event.preventDefault(); sendHealthMessage(event); }">
+                       <button type="button" class="btn" id="health-send-btn" onclick="sendHealthMessage(event)">Ask</button>
                     </div>
                 </div>
 
@@ -1840,7 +1840,7 @@ if (firebaseInitialized) {
             loadMeals();
             loadShoppingList();
     loadSavedFoods();
-    const customDateInput = document.getElementById('food-log-custom-date'); if (customDateInput) customDateInput.value = new Date().toISOString().split('T')[0];
+    const customDateInput = document.getElementById('food-log-custom-date'); if (customDateInput) customDateInput.value = getLocalDate();
             loadSavedFoods();
         }
     });
@@ -1949,7 +1949,7 @@ let shoppingList = [];
 let savedFoods = [];
 let currentEditingMealId = null;
 let currentEditingFoodId = null;
-let currentViewDate = new Date().toISOString().split('T')[0]; // Currently viewing date
+let currentViewDate = getLocalDate(); // Currently viewing date
 let searchTimeout = null;
 
 // FoodData Central API Key - Unlimited searches!
@@ -2015,7 +2015,7 @@ function onDateChange() {
 }
 
 function goToToday() {
-    currentViewDate = new Date().toISOString().split('T')[0];
+    currentViewDate = getLocalDate();
     document.getElementById('view-date').value = currentViewDate;
     updateDateLabel();
     updateDashboard();
@@ -2023,7 +2023,7 @@ function goToToday() {
 
 function updateDateLabel() {
     const dateObj = new Date(currentViewDate + 'T12:00:00'); // Noon to avoid timezone issues
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDate();
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split('T')[0];
@@ -2522,14 +2522,14 @@ document.addEventListener('click', function(event) {
 
 function getSelectedFoodLogDate() {
     const mode = document.getElementById('food-log-date-mode')?.value || 'today';
-    if (mode === 'today') return new Date().toISOString().split('T')[0];
+    if (mode === 'today') return getLocalDate();
     if (mode === 'yesterday') {
         const d = new Date();
         d.setDate(d.getDate() - 1);
         return d.toISOString().split('T')[0];
     }
     const custom = document.getElementById('food-log-custom-date')?.value;
-    return custom || new Date().toISOString().split('T')[0];
+    return custom || getLocalDate();
 }
 
 function toggleCustomLogDate() {
@@ -2654,7 +2654,7 @@ function cleanupAssignedMeals() {
 }
 
 function removeFuturePlannedMeals() {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDate();
     assignedMeals = (assignedMeals || []).filter(meal => {
         if (!meal || !meal.date) return false;
         if (meal.date < today) return true;
@@ -2973,7 +2973,7 @@ function updateFoodLogDisplay() {
 
 function updateDashboard() {
     const userProfile = JSON.parse(localStorage.getItem('userProfile')) || {};
-    const selectedDate = currentViewDate || new Date().toISOString().split('T')[0];
+    const selectedDate = currentViewDate || getLocalDate();
 
     const foodsForDate = (foodLog || []).filter(food => food.date === selectedDate);
     const mealsForDate = (assignedMeals || []).filter(meal => meal.date === selectedDate);
@@ -3086,7 +3086,7 @@ function displayUpcomingMacros() {
 }
 
 function displayTodayMeals() {
-    const selectedDate = currentViewDate || new Date().toISOString().split('T')[0];
+    const selectedDate = currentViewDate || getLocalDate();
     const selectedFoods = (foodLog || []).filter(food => food.date === selectedDate);
     const selectedMeals = (assignedMeals || []).filter(meal => meal.date === selectedDate);
     const plannedMeals = selectedMeals.filter(meal => !meal.completed);
@@ -3743,7 +3743,13 @@ function loadShoppingList() {
     const saved = localStorage.getItem('shoppingList');
     if (saved) shoppingList = JSON.parse(saved);
 }
-        // ============================================
+        function getLocalDate() {
+    const now = new Date();
+    const offset = now.getTimezoneOffset() * 60000;
+    return new Date(now - offset).toISOString().split('T')[0];
+}
+
+// ============================================
 // AI HEALTH ASSISTANT - OPENAI BACKEND CODE
 // ============================================
 
@@ -3829,7 +3835,8 @@ function shouldAutoLogToday(message) {
     return /(add( it)? to (my )?(today'?s|todays) log|log (it|this|that) (for )?today|add to today'?s log)/.test(msg);
 }
 
-async function sendHealthMessage() {
+async function sendHealthMessage(e) {
+    if (e) e.preventDefault();
     const input = document.getElementById('health-chat-input');
     const message = input.value.trim();
     if (!message) return;
@@ -3848,11 +3855,11 @@ async function sendHealthMessage() {
         if (looksLikeFreeformFoodLog(message) && shouldAutoLogToday(message)) {
             const payload = parseFreeformFoodLog(message);
             if (payload && payload.meal) {
-                const entry = buildMealLogEntry(payload.meal, new Date().toISOString().split('T')[0]);
+                const entry = buildMealLogEntry(payload.meal, getLocalDate());
                 foodLog.push(entry);
                 lastLoggedFoodId = entry.id;
                 saveFoodLog();
-                currentViewDate = new Date().toISOString().split('T')[0];
+                currentViewDate = getLocalDate();
                 const dateInput = document.getElementById('view-date');
                 if (dateInput) dateInput.value = currentViewDate;
                 updateDateLabel();
@@ -3899,32 +3906,6 @@ async function sendHealthMessage() {
 function askHealthQuestion(question) {
     document.getElementById('health-chat-input').value = question;
     sendHealthMessage();
-}
-
-async function sendHealthMessage() {
-    const input = document.getElementById('health-chat-input');
-    const message = input.value.trim();
-    if (!message) return;
-
-    addHealthChatMessage(message, 'user');
-    input.value = '';
-
-    const sendBtn = document.getElementById('health-send-btn');
-    const originalText = sendBtn.textContent;
-    sendBtn.disabled = true;
-    sendBtn.textContent = 'Thinking...';
-
-    try {
-        const response = await callOpenAIHealthAssistant(message);
-        addHealthChatMessage(response.text, 'assistant', response.payload);
-        extractPreferences(response.text);
-    } catch (error) {
-        console.error('Health Assistant error:', error);
-        addHealthChatMessage('Sorry, I ran into an error talking to the coach. Please check that your backend is live.', 'assistant');
-    } finally {
-        sendBtn.disabled = false;
-        sendBtn.textContent = originalText;
-    }
 }
 
 function addHealthChatMessage(message, type, payload = null) {
@@ -4021,7 +4002,7 @@ function collapseAiActionCard(cardId, actionLabel, mealSummary) {
 }
 
 function chooseActionDate(defaultDate = null) {
-    const suggested = defaultDate || currentViewDate || new Date().toISOString().split('T')[0];
+    const suggested = defaultDate || currentViewDate || getLocalDate();
     const chosen = window.prompt('Enter date as YYYY-MM-DD', suggested);
     if (!chosen) return null;
     return chosen;
@@ -4299,7 +4280,7 @@ Important response rules:
 }
 
 function buildHealthContext() {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDate();
     const todayFoods = foodLog.filter(food => food.date === today);
 
     let totalCalories = 0;
