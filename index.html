@@ -2940,6 +2940,8 @@ function updateFoodLogDisplay() {
 }
 
 function updateDashboard() {
+    const userProfile = JSON.parse(localStorage.getItem('userProfile')) || {};
+
     const selectedDate = currentViewDate || new Date().toISOString().split('T')[0];
 
     const foodsForDate = foodLog.filter(food => food.date === selectedDate);
@@ -2961,10 +2963,10 @@ function updateDashboard() {
     const plannedProtein = plannedMeals.reduce((sum, m) => sum + ((Number(m.protein) || 0) * (Number(m.servings || 1))), 0);
     const plannedFat = plannedMeals.reduce((sum, m) => sum + ((Number(m.fat) || 0) * (Number(m.servings || 1))), 0);
 
-    const targetCalories = Number((userProfile && userProfile.dailyCalories) ? userProfile.dailyCalories : 2000);
-    const targetCarbs = Number(userProfile.macros?.carbs ?? userProfile.carbs) || 250;
-    const targetProtein = Number(userProfile.macros?.protein ?? userProfile.protein) || 150;
-    const targetFat = Number(userProfile.macros?.fat ?? userProfile.fat) || 67;
+    const targetCalories = Number(userProfile?.dailyCalories) || 2000;
+    const targetCarbs = Number(userProfile?.macros?.carbs ?? userProfile?.carbs) || 250;
+    const targetProtein = Number(userProfile?.macros?.protein ?? userProfile?.protein) || 150;
+    const targetFat = Number(userProfile?.macros?.fat ?? userProfile?.fat) || 67;
 
     const calPct = Math.min(100, Math.round((actualCalories / targetCalories) * 100 || 0));
 
