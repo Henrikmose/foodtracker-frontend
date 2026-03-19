@@ -1896,6 +1896,8 @@ async function loadFromCloud() {
 
 function saveToLocalStorage() {
     localStorage.setItem('userProfile', JSON.stringify(userProfile));
+
+    if (typeof updateDashboard === 'function') updateDashboard();
     localStorage.setItem('foodLog', JSON.stringify(foodLog));
     localStorage.setItem('assignedMeals', JSON.stringify(assignedMeals));
     localStorage.setItem('generatedMeals', JSON.stringify(generatedMeals));
@@ -2963,7 +2965,7 @@ function updateDashboard() {
     const plannedProtein = plannedMeals.reduce((sum, m) => sum + ((Number(m.protein) || 0) * (Number(m.servings || 1))), 0);
     const plannedFat = plannedMeals.reduce((sum, m) => sum + ((Number(m.fat) || 0) * (Number(m.servings || 1))), 0);
 
-    const targetCalories = Number(userProfile?.dailyCalories) || 2000;
+    const targetCalories = Number((JSON.parse(localStorage.getItem('userProfile')) || {}).dailyCalories) || Number(userProfile?.dailyCalories) || 2000;
     const targetCarbs = Number(userProfile?.macros?.carbs ?? userProfile?.carbs) || 250;
     const targetProtein = Number(userProfile?.macros?.protein ?? userProfile?.protein) || 150;
     const targetFat = Number(userProfile?.macros?.fat ?? userProfile?.fat) || 67;
@@ -2972,11 +2974,8 @@ function updateDashboard() {
 
     const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
 
-    const freshProfile = JSON.parse(localStorage.getItem('userProfile')) || {};
-const finalCalories = Number(freshProfile.dailyCalories) || 2000;
-
-setText('daily-calories-display', `${Math.round(actualCalories)} / ${Math.round(finalCalories)} cal`);
-    setText('calories-display', `${Math.round(actualCalories)} / ${Math.round(finalCalories)} cal`);
+    setText('daily-calories-display', `${Math.round(actualCalories)} / ${Math.round(targetCalories)} cal`);
+    setText('calories-display', `${Math.round(actualCalories)} / ${Math.round(targetCalories)} cal`);
     setText('calories-progress-text', `${calPct}%`);
     const prog = document.getElementById('calories-progress-fill');
     if (prog) prog.style.width = `${calPct}%`;
