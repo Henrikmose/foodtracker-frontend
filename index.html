@@ -2972,8 +2972,11 @@ function updateDashboard() {
 
     const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
 
-    setText('daily-calories-display', `${Math.round(actualCalories)} / ${Math.round(targetCalories)} cal`);
-    setText('calories-display', `${Math.round(actualCalories)} / ${Math.round(targetCalories)} cal`);
+    const freshProfile = JSON.parse(localStorage.getItem('userProfile')) || {};
+const finalCalories = Number(freshProfile.dailyCalories) || 2000;
+
+setText('daily-calories-display', `${Math.round(actualCalories)} / ${Math.round(finalCalories)} cal`);
+    setText('calories-display', `${Math.round(actualCalories)} / ${Math.round(finalCalories)} cal`);
     setText('calories-progress-text', `${calPct}%`);
     const prog = document.getElementById('calories-progress-fill');
     if (prog) prog.style.width = `${calPct}%`;
