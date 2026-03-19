@@ -8,12 +8,12 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js">
 function appendHealthMessage(sender, text) {
-    const messages = document.getElementById('health-chat-messages') || document.getElementById('chat-messages');
+    const messages = document.getElementById('health-chat-container');
     if (!messages) return;
     const div = document.createElement('div');
-    div.className = sender === 'You' ? 'user-message' : 'assistant-message';
+    div.className = sender === 'You' ? 'chat-message user' : 'chat-message assistant';
     div.style.margin = '12px 0';
-    div.innerHTML = `<strong>${sender}:</strong> ${text}`;
+    div.innerHTML = `<p><strong>${sender}:</strong> ${text}</p>`;
     messages.appendChild(div);
     messages.scrollTop = messages.scrollHeight;
 }
@@ -30,6 +30,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 sendHealthMessage(ev);
             }
         });
+    }
+});
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    const askBtn = document.getElementById('ask-button');
+    const input = document.getElementById('health-chat-input');
+    if (askBtn) askBtn.onclick = function(ev) { sendHealthMessage(ev); };
+    if (input) {
+        input.onkeypress = function(ev) {
+            if (ev.key === 'Enter') {
+                ev.preventDefault();
+                sendHealthMessage(ev);
+                return false;
+            }
+        };
     }
 });
 
@@ -1331,7 +1347,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     <div class="chat-input-container" style="margin-top: 15px;">
                         <input type="text" id="health-chat-input" class="input-group input chat-input" placeholder="Ask about health, nutrition, supplements..." onkeypress="if(event.key==='Enter') sendHealthMessage()">
-                       <button class="btn" id="health-send-btn" onclick="sendHealthMessage()" id="ask-button" class="ask-button" type="button">Ask</button>
+                       <button class="btn ask-button" id="ask-button" type="button">Ask</button>
                     </div>
                 </div>
 
@@ -2003,6 +2019,7 @@ let searchTimeout = null;
 const FOOD_API_KEY = 'sTLO6YQSliHVr0a3sh2EkP59cqq4mwfRkthXV60i';
 
 window.onload = function() {
+    currentViewDate = getLocalDate();
     loadProfile();
     loadFoodLog();
     loadMeals();
@@ -2014,7 +2031,8 @@ window.onload = function() {
 
 function initializeDatePicker() {
     const dateInput = document.getElementById('view-date');
-    dateInput.value = currentViewDate;
+    if (!currentViewDate) currentViewDate = getLocalDate();
+    if (dateInput) dateInput.value = currentViewDate;
     updateDateLabel();
 }
 
@@ -2069,15 +2087,20 @@ function goToToday() {
 }
 
 function updateDateLabel() {
-    const dateObj = new Date(currentViewDate + 'T12:00:00'); // Noon to avoid timezone issues
+    if (!currentViewDate) currentViewDate = getLocalDate();
+    const dateObj = new Date(currentViewDate + 'T12:00:00');
     const today = getLocalDate();
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split('T')[0];
-    
+
+    const y = new Date();
+    y.setHours(12,0,0,0);
+    y.setDate(y.getDate() - 1);
+    const yesterdayStr = new Date(y.getTime() - y.getTimezoneOffset()*60000).toISOString().split('T')[0];
+
+    const t = new Date();
+    t.setHours(12,0,0,0);
+    t.setDate(t.getDate() + 1);
+    const tomorrowStr = new Date(t.getTime() - t.getTimezoneOffset()*60000).toISOString().split('T')[0];
+
     let label = '';
     if (currentViewDate === today) {
         label = 'Today';
@@ -2088,8 +2111,9 @@ function updateDateLabel() {
     } else {
         label = dateObj.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     }
-    
-    document.getElementById('date-label').textContent = label;
+
+    const el = document.getElementById('date-label');
+    if (el) el.textContent = label;
 }
 
 function toggleMacroType(type) {
@@ -2261,22 +2285,19 @@ function calculateSuggestedMacros() {
 }
 
 function saveProfile() {
-    userProfile.name = document.getElementById('user-name')?.value || '';
-    userProfile.gender = document.getElementById('user-gender')?.value || '';
-    userProfile.age = parseFloat(document.getElementById('user-age')?.value) || null;
+    const val = (id) => document.getElementById(id)?.value ?? '';
+
+    userProfile.name = val('user-name');
+    userProfile.gender = val('user-gender');
+    userProfile.age = val('user-age') === '' ? null : parseFloat(val('user-age'));
     userProfile.units = 'imperial';
-    userProfile.activityLevel = parseFloat(document.getElementById('activity-level')?.value) || 1.55;
-    userProfile.goalType = document.getElementById('goal-type')?.value || 'maintain';
+    userProfile.activityLevel = val('activity-level') === '' ? 1.55 : parseFloat(val('activity-level'));
+    userProfile.goalType = val('goal-type') || 'maintain';
 
-    const weightLbsRaw = document.getElementById('weight-lbs')?.value;
-    const targetWeightLbsRaw = document.getElementById('target-weight-lbs')?.value;
-    const feetRaw = document.getElementById('height-feet')?.value;
-    const inchesRaw = document.getElementById('height-inches')?.value;
-
-    const weightLbs = weightLbsRaw === '' ? null : parseFloat(weightLbsRaw);
-    const targetWeightLbs = targetWeightLbsRaw === '' ? null : parseFloat(targetWeightLbsRaw);
-    const feet = feetRaw === '' ? null : parseFloat(feetRaw);
-    const inches = inchesRaw === '' ? null : parseFloat(inchesRaw);
+    const weightLbs = val('weight-lbs') === '' ? null : parseFloat(val('weight-lbs'));
+    const targetWeightLbs = val('target-weight-lbs') === '' ? null : parseFloat(val('target-weight-lbs'));
+    const feet = val('height-feet') === '' ? null : parseFloat(val('height-feet'));
+    const inches = val('height-inches') === '' ? null : parseFloat(val('height-inches'));
 
     userProfile.weight = {
         imperial: weightLbs,
@@ -2292,31 +2313,20 @@ function saveProfile() {
         cm: (feet == null || inches == null) ? null : +((((feet * 12) + inches) * 2.54).toFixed(1))
     };
 
-    userProfile.dailyCalories = parseFloat(document.getElementById('daily-calories')?.value) || 2000;
+    userProfile.dailyCalories = val('daily-calories') === '' ? 2000 : parseFloat(val('daily-calories'));
     userProfile.macros = {
-        carbs: parseFloat(document.getElementById('carbs-grams')?.value) || 250,
-        protein: parseFloat(document.getElementById('protein-grams')?.value) || 150,
-        fat: parseFloat(document.getElementById('fat-grams')?.value) || 67
+        carbs: val('carbs-grams') === '' ? 250 : parseFloat(val('carbs-grams')),
+        protein: val('protein-grams') === '' ? 150 : parseFloat(val('protein-grams')),
+        fat: val('fat-grams') === '' ? 67 : parseFloat(val('fat-grams'))
     };
-
-    // Flat compatibility
     userProfile.carbs = userProfile.macros.carbs;
     userProfile.protein = userProfile.macros.protein;
     userProfile.fat = userProfile.macros.fat;
 
-    userProfile.preferences = {
-        dietType: document.getElementById('diet-type')?.value || '',
-        allergies: document.getElementById('allergies')?.value || '',
-        dislikes: document.getElementById('dislikes')?.value || '',
-        healthGoals: document.getElementById('health-goals')?.value || ''
-    };
-
     localStorage.setItem('userProfile', JSON.stringify(userProfile));
-    if (typeof saveToLocalStorage === 'function') saveToLocalStorage();
 
-    updateDashboard();
+    if (typeof updateDashboard === 'function') updateDashboard();
     if (typeof displayTodayMeals === 'function') displayTodayMeals();
-    if (typeof updateFoodLogDisplay === 'function') updateFoodLogDisplay();
 
     const sync = document.getElementById('sync-status');
     if (sync) sync.textContent = 'Saved Locally';
@@ -2326,31 +2336,39 @@ function saveProfile() {
 
 function loadProfile() {
     const saved = localStorage.getItem('userProfile');
-    if (saved) userProfile = JSON.parse(saved);
+    if (saved) {
+        try {
+            userProfile = JSON.parse(saved) || {};
+        } catch (e) {
+            userProfile = {};
+        }
+    } else {
+        userProfile = {};
+    }
 
-    document.getElementById('user-name').value = userProfile.name || '';
-    document.getElementById('user-gender').value = userProfile.gender || '';
-    document.getElementById('user-age').value = userProfile.age || '';
-    document.getElementById('activity-level').value = userProfile.activityLevel || 1.55;
-    document.getElementById('goal-type').value = userProfile.goalType || 'maintain';
+    const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = (val ?? '');
+    };
+
+    setVal('user-name', userProfile.name);
+    setVal('user-gender', userProfile.gender);
+    setVal('user-age', userProfile.age);
+    setVal('activity-level', userProfile.activityLevel ?? 1.55);
+    setVal('goal-type', userProfile.goalType ?? 'maintain');
 
     currentUnit = 'imperial';
-    toggleUnits('imperial');
+    if (typeof toggleUnits === 'function') toggleUnits('imperial');
 
-    document.getElementById('weight-lbs').value = userProfile.weight?.imperial ?? '';
-    document.getElementById('target-weight-lbs').value = userProfile.targetWeight?.imperial ?? '';
-    document.getElementById('height-feet').value = userProfile.height?.feet ?? '';
-    document.getElementById('height-inches').value = userProfile.height?.inches ?? '';
+    setVal('weight-lbs', userProfile.weight?.imperial);
+    setVal('target-weight-lbs', userProfile.targetWeight?.imperial);
+    setVal('height-feet', userProfile.height?.feet);
+    setVal('height-inches', userProfile.height?.inches);
 
-    document.getElementById('daily-calories').value = userProfile.dailyCalories || 2000;
-    document.getElementById('carbs-grams').value = userProfile.macros?.carbs ?? userProfile.carbs ?? 250;
-    document.getElementById('protein-grams').value = userProfile.macros?.protein ?? userProfile.protein ?? 150;
-    document.getElementById('fat-grams').value = userProfile.macros?.fat ?? userProfile.fat ?? 67;
-
-    document.getElementById('diet-type').value = userProfile.preferences?.dietType || '';
-    document.getElementById('allergies').value = userProfile.preferences?.allergies || '';
-    document.getElementById('dislikes').value = userProfile.preferences?.dislikes || '';
-    document.getElementById('health-goals').value = userProfile.preferences?.healthGoals || '';
+    setVal('daily-calories', userProfile.dailyCalories ?? 2000);
+    setVal('carbs-grams', userProfile.macros?.carbs ?? userProfile.carbs ?? 250);
+    setVal('protein-grams', userProfile.macros?.protein ?? userProfile.protein ?? 150);
+    setVal('fat-grams', userProfile.macros?.fat ?? userProfile.fat ?? 67);
 
     const sync = document.getElementById('sync-status');
     if (sync) sync.textContent = 'Saved Locally';
@@ -3876,26 +3894,37 @@ function shouldAutoLogToday(message) {
     return /(add( it)? to (my )?(today'?s|todays) log|log (it|this|that) (for )?today|add to today'?s log)/.test(msg);
 }
 
-async function sendHealthMessage(e) {
+async 
+
+
+function askHealthQuestion(question) {
+    document.getElementById('health-chat-input').value = question;
+    sendHealthMessage();
+}
+
+async 
+
+
+function sendHealthMessage(e) {
     if (e) e.preventDefault();
 
-    const input = document.getElementById('health-chat-input') || document.getElementById('chat-input');
-    const btn = document.getElementById('ask-button') || document.querySelector('.ask-button');
+    const input = document.getElementById('health-chat-input');
+    const btn = document.getElementById('ask-button');
+    const container = document.getElementById('health-chat-container');
 
-    if (!input) return;
+    if (!input || !btn || !container) return;
+
     const message = (input.value || '').trim();
     if (!message) return;
 
-    if (btn) {
-        btn.disabled = true;
-        btn.textContent = 'Thinking...';
-    }
+    btn.disabled = true;
+    btn.textContent = 'Thinking...';
 
     appendHealthMessage('You', message);
     input.value = '';
 
     const lower = message.toLowerCase();
-    let reply = '';
+    let reply = "I got your message. I'm using your saved profile and today's progress to help with coaching.";
 
     if (/(add it to my log|add to my log|log it|log this)/.test(lower) && /(cal|calories|protein|carb|fat)/.test(lower)) {
         const calories = (lower.match(/(\d+(?:\.\d+)?)\s*(?:cal|calories)/) || [])[1];
@@ -3924,58 +3953,13 @@ async function sendHealthMessage(e) {
         }
 
         reply = `Added ${entry.name} to your log for today: ${entry.calories} calories, ${entry.protein}g protein, ${entry.carbs}g carbs, ${entry.fat}g fat.`;
-    } else if (/meal plan|plan for|create me a meal plan|generate.*meal plan/.test(lower)) {
-        const days = parseRequestedPlanDays(message);
-        const profile = JSON.parse(localStorage.getItem('userProfile')) || {};
-        const dailyCalories = Number(profile.dailyCalories) || 2000;
-        const proteinTarget = Number(profile.macros?.protein ?? profile.protein) || 150;
-        reply = `Generated a ${days}-day meal plan around ${dailyCalories} calories and ${proteinTarget}g protein per day. Review it, then assign it.`;
-        if (typeof generateMealPlan === 'function') {
-            try { generateMealPlan(message, days); } catch (err) {}
-        }
-    } else {
-        reply = "I got your message. I'm using your saved profile and today's progress to help with coaching.";
     }
 
-    setTimeout(() => {
+    window.setTimeout(() => {
         appendHealthMessage('AI', reply);
-        if (btn) {
-            btn.disabled = false;
-            btn.textContent = 'Ask';
-        }
+        btn.disabled = false;
+        btn.textContent = 'Ask';
     }, 350);
-}
-
-
-function askHealthQuestion(question) {
-    document.getElementById('health-chat-input').value = question;
-    sendHealthMessage();
-}
-
-async function sendHealthMessage() {
-    const input = document.getElementById('health-chat-input');
-    const message = input.value.trim();
-    if (!message) return;
-
-    addHealthChatMessage(message, 'user');
-    input.value = '';
-
-    const sendBtn = document.getElementById('health-send-btn');
-    const originalText = sendBtn.textContent;
-    sendBtn.disabled = true;
-    sendBtn.textContent = 'Thinking...';
-
-    try {
-        const response = await callOpenAIHealthAssistant(message);
-        addHealthChatMessage(response.text, 'assistant', response.payload);
-        extractPreferences(response.text);
-    } catch (error) {
-        console.error('Health Assistant error:', error);
-        addHealthChatMessage('Sorry, I ran into an error talking to the coach. Please check that your backend is live.', 'assistant');
-    } finally {
-        sendBtn.disabled = false;
-        sendBtn.textContent = originalText;
-    }
 }
 
 function addHealthChatMessage(message, type, payload = null) {
