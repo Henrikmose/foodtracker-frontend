@@ -6,7 +6,34 @@
     <title>Food Tracker - Your Nutrition Companion</title>
     
     <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js">
+function appendHealthMessage(sender, text) {
+    const messages = document.getElementById('health-chat-messages') || document.getElementById('chat-messages');
+    if (!messages) return;
+    const div = document.createElement('div');
+    div.className = sender === 'You' ? 'user-message' : 'assistant-message';
+    div.style.margin = '12px 0';
+    div.innerHTML = `<strong>${sender}:</strong> ${text}`;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+}
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    const askBtn = document.getElementById('ask-button') || document.querySelector('.ask-button');
+    const chatInput = document.getElementById('health-chat-input') || document.getElementById('chat-input');
+    if (askBtn) askBtn.onclick = function(ev) { sendHealthMessage(ev); };
+    if (chatInput) {
+        chatInput.addEventListener('keydown', function(ev) {
+            if (ev.key === 'Enter') {
+                ev.preventDefault();
+                sendHealthMessage(ev);
+            }
+        });
+    }
+});
+
+</script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     
@@ -1303,8 +1330,8 @@
                     </div>
 
                     <div class="chat-input-container" style="margin-top: 15px;">
-                        <input type="text" id="health-chat-input" class="input-group input chat-input" placeholder="Ask about health, nutrition, supplements..." onkeypress="if(event.key==='Enter'){ event.preventDefault(); sendHealthMessage(event); }">
-                       <button type="button" class="btn" id="health-send-btn" onclick="sendHealthMessage(event)">Ask</button>
+                        <input type="text" id="health-chat-input" class="input-group input chat-input" placeholder="Ask about health, nutrition, supplements..." onkeypress="if(event.key==='Enter') sendHealthMessage()">
+                       <button class="btn" id="health-send-btn" onclick="sendHealthMessage()" id="ask-button" class="ask-button" type="button">Ask</button>
                     </div>
                 </div>
 
@@ -1653,6 +1680,26 @@
     </div>
 
     <script>
+
+function getLocalDate() {
+    const now = new Date();
+    const offset = now.getTimezoneOffset() * 60000;
+    return new Date(now - offset).toISOString().split('T')[0];
+}
+
+function parseRequestedPlanDays(prompt) {
+    const text = (prompt || '').toLowerCase().trim();
+    if (!text) return 7;
+    if (/\b(today|for today|today only)\b/.test(text)) return 1;
+    if (/\b(tomorrow|for tomorrow|tomorrow only)\b/.test(text)) return 1;
+    let m = text.match(/(?:next|for)?\s*(\d+)\s*day/);
+    if (m) return Math.max(1, Math.min(14, parseInt(m[1], 10)));
+    if (/\b(next two days|two days|couple of days|next couple of days)\b/.test(text)) return 2;
+    if (/\b(next three days|three days)\b/.test(text)) return 3;
+    if (/\b(week|7 days|seven days)\b/.test(text)) return 7;
+    return 7;
+}
+
 // Firebase Configuration
 // Your Firebase project credentials
 const firebaseConfig = {
@@ -3743,13 +3790,7 @@ function loadShoppingList() {
     const saved = localStorage.getItem('shoppingList');
     if (saved) shoppingList = JSON.parse(saved);
 }
-        function getLocalDate() {
-    const now = new Date();
-    const offset = now.getTimezoneOffset() * 60000;
-    return new Date(now - offset).toISOString().split('T')[0];
-}
-
-// ============================================
+        // ============================================
 // AI HEALTH ASSISTANT - OPENAI BACKEND CODE
 // ============================================
 
@@ -3837,6 +3878,81 @@ function shouldAutoLogToday(message) {
 
 async function sendHealthMessage(e) {
     if (e) e.preventDefault();
+
+    const input = document.getElementById('health-chat-input') || document.getElementById('chat-input');
+    const btn = document.getElementById('ask-button') || document.querySelector('.ask-button');
+
+    if (!input) return;
+    const message = (input.value || '').trim();
+    if (!message) return;
+
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Thinking...';
+    }
+
+    appendHealthMessage('You', message);
+    input.value = '';
+
+    const lower = message.toLowerCase();
+    let reply = '';
+
+    if (/(add it to my log|add to my log|log it|log this)/.test(lower) && /(cal|calories|protein|carb|fat)/.test(lower)) {
+        const calories = (lower.match(/(\d+(?:\.\d+)?)\s*(?:cal|calories)/) || [])[1];
+        const fat = (lower.match(/(\d+(?:\.\d+)?)\s*g\s*(?:of\s*)?fat/) || [])[1];
+        const carbs = (lower.match(/(\d+(?:\.\d+)?)\s*g\s*(?:of\s*)?(?:carbs|carb)/) || [])[1];
+        const protein = (lower.match(/(\d+(?:\.\d+)?)\s*g\s*(?:of\s*)?protein/) || [])[1];
+        const nameGuess = (message.match(/(?:had|drank|ate)\s+(.*?)(?:,|\d|can you|please|$)/i) || [])[1] || 'Logged Food';
+
+        const entry = {
+            id: Date.now(),
+            name: nameGuess.trim(),
+            calories: Number(calories) || 0,
+            fat: Number(fat) || 0,
+            carbs: Number(carbs) || 0,
+            protein: Number(protein) || 0,
+            servings: 1,
+            date: getLocalDate(),
+            timestamp: new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit', second:'2-digit'})
+        };
+
+        if (Array.isArray(foodLog)) {
+            foodLog.push(entry);
+            localStorage.setItem('foodLog', JSON.stringify(foodLog));
+            if (typeof updateDashboard === 'function') updateDashboard();
+            if (typeof displayTodayMeals === 'function') displayTodayMeals();
+        }
+
+        reply = `Added ${entry.name} to your log for today: ${entry.calories} calories, ${entry.protein}g protein, ${entry.carbs}g carbs, ${entry.fat}g fat.`;
+    } else if (/meal plan|plan for|create me a meal plan|generate.*meal plan/.test(lower)) {
+        const days = parseRequestedPlanDays(message);
+        const profile = JSON.parse(localStorage.getItem('userProfile')) || {};
+        const dailyCalories = Number(profile.dailyCalories) || 2000;
+        const proteinTarget = Number(profile.macros?.protein ?? profile.protein) || 150;
+        reply = `Generated a ${days}-day meal plan around ${dailyCalories} calories and ${proteinTarget}g protein per day. Review it, then assign it.`;
+        if (typeof generateMealPlan === 'function') {
+            try { generateMealPlan(message, days); } catch (err) {}
+        }
+    } else {
+        reply = "I got your message. I'm using your saved profile and today's progress to help with coaching.";
+    }
+
+    setTimeout(() => {
+        appendHealthMessage('AI', reply);
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Ask';
+        }
+    }, 350);
+}
+
+
+function askHealthQuestion(question) {
+    document.getElementById('health-chat-input').value = question;
+    sendHealthMessage();
+}
+
+async function sendHealthMessage() {
     const input = document.getElementById('health-chat-input');
     const message = input.value.trim();
     if (!message) return;
@@ -3850,49 +3966,9 @@ async function sendHealthMessage(e) {
     sendBtn.textContent = 'Thinking...';
 
     try {
-        let result = null;
-
-        if (looksLikeFreeformFoodLog(message) && shouldAutoLogToday(message)) {
-            const payload = parseFreeformFoodLog(message);
-            if (payload && payload.meal) {
-                const entry = buildMealLogEntry(payload.meal, getLocalDate());
-                foodLog.push(entry);
-                lastLoggedFoodId = entry.id;
-                saveFoodLog();
-                currentViewDate = getLocalDate();
-                const dateInput = document.getElementById('view-date');
-                if (dateInput) dateInput.value = currentViewDate;
-                updateDateLabel();
-                updateFoodLogDisplay();
-                updateDashboard();
-
-                result = {
-                    text: `✅ Added to today's log: ${payload.meal.name} — ${Math.round(Number(payload.meal.calories || 0))} cal | P: ${Math.round(Number(payload.meal.protein || 0) * 10) / 10}g | C: ${Math.round(Number(payload.meal.carbs || 0) * 10) / 10}g | F: ${Math.round(Number(payload.meal.fat || 0) * 10) / 10}g`,
-                    payload: null
-                };
-            }
-        } else if (looksLikeCorrectionRequest(message) && looksLikeFreeformFoodLog(message)) {
-            const payload = parseFreeformFoodLog(message);
-            const target = lastLoggedFoodId || (findMostRecentFoodEntry() ? findMostRecentFoodEntry().id : null);
-            if (payload && payload.meal && target && updateExistingFoodLogEntry(target, payload.meal)) {
-                result = {
-                    text: `✅ Updated your most recent log entry: ${payload.meal.name} — ${Math.round(Number(payload.meal.calories || 0))} cal | P: ${Math.round(Number(payload.meal.protein || 0) * 10) / 10}g | C: ${Math.round(Number(payload.meal.carbs || 0) * 10) / 10}g | F: ${Math.round(Number(payload.meal.fat || 0) * 10) / 10}g`,
-                    payload: null
-                };
-            }
-        } else if (looksLikeFreeformFoodLog(message)) {
-            result = {
-                text: 'I turned that into a loggable food entry for you. Confirm below.',
-                payload: parseFreeformFoodLog(message)
-            };
-        }
-
-        if (!result) {
-            result = await callOpenAIHealthAssistant(message);
-        }
-
-        addHealthChatMessage(result.text, 'assistant', result.payload || null);
-        extractPreferences(result.text);
+        const response = await callOpenAIHealthAssistant(message);
+        addHealthChatMessage(response.text, 'assistant', response.payload);
+        extractPreferences(response.text);
     } catch (error) {
         console.error('Health Assistant error:', error);
         addHealthChatMessage('Sorry, I ran into an error talking to the coach. Please check that your backend is live.', 'assistant');
@@ -3900,12 +3976,6 @@ async function sendHealthMessage(e) {
         sendBtn.disabled = false;
         sendBtn.textContent = originalText;
     }
-}
-
-
-function askHealthQuestion(question) {
-    document.getElementById('health-chat-input').value = question;
-    sendHealthMessage();
 }
 
 function addHealthChatMessage(message, type, payload = null) {
